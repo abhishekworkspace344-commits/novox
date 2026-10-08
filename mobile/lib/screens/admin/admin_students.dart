@@ -1,0 +1,561 @@
+import 'package:flutter/material.dart';
+
+import '../../core/network/api_client.dart';
+import '../../core/theme/app_theme.dart';
+import '../../models/student_admin_model.dart';
+import '../../services/admin_service.dart';
+
+class AdminStudents extends StatefulWidget {
+  const AdminStudents({
+    super.key,
+  });
+
+  @override
+  State<AdminStudents> createState() => _AdminStudentsState();
+}
+
+class _AdminStudentsState extends State<AdminStudents> {
+  late final AdminService adminService;
+
+  List<StudentAdminModel> students = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    adminService = AdminService(ApiClient());
+    loadStudents();
+  }
+
+  Future<void> loadStudents() async {
+    if (!mounted) return;
+    setState(() {
+      loading = true;
+    });
+
+    try {
+      final result = await adminService.getStudents();
+      if (!mounted) return;
+      setState(() {
+        students = result;
+        loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+      });
+
+      showMessage("Unable to load students: $e");
+    }
+  }
+
+  Future<void> deactivateStudent(StudentAdminModel student) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("Deactivate Student"),
+          content: Text(
+            "Are you sure you want to deactivate ${student.name.isNotEmpty ? student.name : student.studentCode}?",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text("Deactivate"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await adminService.deactivateStudent(student.id);
+      if (!mounted) return;
+      showMessage("Student deactivated successfully");
+      await loadStudents();
+    } catch (e) {
+      if (!mounted) return;
+      showMessage("Unable to deactivate student: $e");
+    }
+  }
+
+  Future<void> showAddStudentDialog() async {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    final studentCodeController = TextEditingController();
+    final courseController = TextEditingController();
+    final batchController = TextEditingController();
+    final phoneController = TextEditingController();
+
+    bool saving = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Add New Student"),
+              content: SizedBox(
+                width: 460,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      studentField(
+                        controller: nameController,
+                        label: "Full Name",
+                        icon: Icons.person_rounded,
+                      ),
+                      studentField(
+                        controller: emailController,
+                        label: "Email Address",
+                        icon: Icons.email_rounded,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      studentField(
+                        controller: passwordController,
+                        label: "Password",
+                        icon: Icons.lock_rounded,
+                        obscure: true,
+                      ),
+                      studentField(
+                        controller: studentCodeController,
+                        label: "Student Code (e.g. NOVOX-STU-002)",
+                        icon: Icons.badge_rounded,
+                      ),
+                      studentField(
+                        controller: courseController,
+                        label: "Course / Degree",
+                        icon: Icons.school_rounded,
+                      ),
+                      studentField(
+                        controller: batchController,
+                        label: "Batch (e.g. 2025-2027)",
+                        icon: Icons.calendar_today_rounded,
+                      ),
+                      studentField(
+                        controller: phoneController,
+                        label: "Phone Number",
+                        icon: Icons.phone_rounded,
+                        keyboardType: TextInputType.phone,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving ? null : () => Navigator.pop(dialogContext),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          await handleCreateStudent(
+                            dialogContext: dialogContext,
+                            name: nameController.text.trim(),
+                            email: emailController.text.trim(),
+                            password: passwordController.text,
+                            studentCode: studentCodeController.text.trim(),
+                            course: courseController.text.trim(),
+                            batch: batchController.text.trim(),
+                            phone: phoneController.text.trim(),
+                            setSaving: (v) => setDialogState(() => saving = v),
+                          );
+                        },
+                  child: saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text("Create Student"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    studentCodeController.dispose();
+    courseController.dispose();
+    batchController.dispose();
+    phoneController.dispose();
+  }
+
+  Future<void> handleCreateStudent({
+    required BuildContext dialogContext,
+    required String name,
+    required String email,
+    required String password,
+    required String studentCode,
+    required String course,
+    required String batch,
+    required String phone,
+    required void Function(bool) setSaving,
+  }) async {
+    if (name.isEmpty) {
+      showMessage("Please enter full name");
+      return;
+    }
+    if (email.isEmpty) {
+      showMessage("Please enter email address");
+      return;
+    }
+    if (password.length < 6) {
+      showMessage("Password must be at least 6 characters");
+      return;
+    }
+    if (studentCode.isEmpty) {
+      showMessage("Please enter student code");
+      return;
+    }
+    if (course.isEmpty) {
+      showMessage("Please enter course");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await adminService.createStudent(
+        name: name,
+        email: email,
+        password: password,
+        phone: phone,
+        studentCode: studentCode,
+        course: course,
+        batch: batch,
+      );
+
+      if (!mounted) return;
+      if (dialogContext.mounted) {
+        Navigator.pop(dialogContext);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Student created successfully"),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      await loadStudents();
+    } catch (e) {
+      if (!mounted) return;
+      setSaving(false);
+      showMessage("Unable to create student: $e");
+    }
+  }
+
+  Widget studentField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscure = false,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+        ),
+      ),
+    );
+  }
+
+  Widget buildStudentCard(StudentAdminModel student) {
+    final firstLetter = student.name.isNotEmpty
+        ? student.name[0].toUpperCase()
+        : (student.studentCode.isNotEmpty ? student.studentCode[0].toUpperCase() : "S");
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x060F172A),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: AppColors.primarySoft,
+              child: Text(
+                firstLetter,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          student.studentCode,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (student.course.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2FE),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            student.course,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0284C7),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    student.name.isNotEmpty ? student.name : "Student",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (student.batch != null && student.batch!.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      "Batch: ${student.batch}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  if (student.email.isNotEmpty)
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.email_outlined,
+                          size: 14,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            student.email,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (student.phone != null && student.phone!.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.phone_outlined,
+                          size: 14,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          student.phone!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: AppColors.textMuted),
+              onSelected: (value) async {
+                if (value == "deactivate") {
+                  await deactivateStudent(student);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: "deactivate",
+                  child: Row(
+                    children: [
+                      Icon(Icons.block_rounded, size: 18, color: AppColors.danger),
+                      SizedBox(width: 8),
+                      Text("Deactivate", style: TextStyle(color: AppColors.danger)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildEmptyState() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 140),
+        Center(
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.school_outlined,
+              size: 38,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Center(
+          child: Text(
+            "No Enrolled Students Found",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Center(
+          child: Text(
+            "Tap 'Add Student' below to enroll a new student.",
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text("Student Management"),
+        actions: [
+          IconButton(
+            tooltip: "Refresh",
+            onPressed: loadStudents,
+            icon: const Icon(Icons.refresh),
+          ),
+          IconButton(
+            tooltip: "Add Student",
+            onPressed: showAddStudentDialog,
+            icon: const Icon(Icons.person_add_rounded),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: showAddStudentDialog,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add_rounded),
+        label: const Text("Add Student"),
+      ),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: loadStudents,
+              color: AppColors.primary,
+              child: students.isEmpty
+                  ? buildEmptyState()
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      itemCount: students.length,
+                      itemBuilder: (context, index) {
+                        return buildStudentCard(students[index]);
+                      },
+                    ),
+            ),
+    );
+  }
+}
