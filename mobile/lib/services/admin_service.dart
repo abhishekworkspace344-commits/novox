@@ -251,6 +251,10 @@ class AdminService {
   // FEES
   // ============================================================
 
+  // ------------------------------------------------------------
+  // GET PENDING FEES
+  // ------------------------------------------------------------
+
   Future<List<AdminFeeModel>>
       getPendingFees() async {
     final response = await apiClient.dio.get(
@@ -282,6 +286,27 @@ class AdminService {
     await apiClient.dio.post(
       ApiConstants.feeStructure,
       data: data,
+    );
+  }
+
+  // ------------------------------------------------------------
+  // GET CREATED FEE STRUCTURES
+  // ------------------------------------------------------------
+
+  Future<List<dynamic>>
+      getFeeStructures() async {
+    final response = await apiClient.dio.get(
+      ApiConstants.feeStructure,
+    );
+
+    final data = response.data;
+
+    if (data is! List) {
+      return [];
+    }
+
+    return List<dynamic>.from(
+      data,
     );
   }
 
@@ -323,7 +348,8 @@ class AdminService {
         receiptNumber,
       ),
       options: Options(
-        responseType: ResponseType.bytes,
+        responseType:
+            ResponseType.bytes,
       ),
     );
   }

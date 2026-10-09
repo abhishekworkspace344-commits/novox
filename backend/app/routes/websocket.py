@@ -7,6 +7,7 @@ from app.core.websocket_manager import manager
 from app.database.connection import SessionLocal
 from app.models.user import User
 
+
 router = APIRouter()
 
 
@@ -24,7 +25,9 @@ async def admin_websocket(
         payload = jwt.decode(
             token,
             settings.JWT_SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM],
+            algorithms=[
+                settings.JWT_ALGORITHM
+            ],
         )
 
         user_id = payload.get("sub")
@@ -43,24 +46,34 @@ async def admin_websocket(
     try:
         user = (
             db.query(User)
-            .filter(User.id == int(user_id))
+            .filter(
+                User.id == int(user_id)
+            )
             .first()
         )
 
         if not user or not user.is_active:
-            await websocket.close(code=1008)
+            await websocket.close(
+                code=1008
+            )
             return
 
-        await manager.connect(websocket)
+        await manager.connect(
+            websocket
+        )
 
         while True:
             await websocket.receive_text()
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(
+            websocket
+        )
 
     except Exception:
-        manager.disconnect(websocket)
+        manager.disconnect(
+            websocket
+        )
 
     finally:
         db.close()

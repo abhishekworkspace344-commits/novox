@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/network/api_client.dart';
-import '../../core/theme/app_theme.dart';
 import '../../models/admin_fee_model.dart';
 import '../../services/admin_service.dart';
-import '../../widgets/status_badge.dart';
 
 class AdminFeesScreen extends StatefulWidget {
   const AdminFeesScreen({
@@ -12,313 +10,249 @@ class AdminFeesScreen extends StatefulWidget {
   });
 
   @override
-  State<AdminFeesScreen> createState() => _AdminFeesScreenState();
+  State<AdminFeesScreen> createState() =>
+      _AdminFeesScreenState();
 }
 
-class _AdminFeesScreenState extends State<AdminFeesScreen> {
+class _AdminFeesScreenState
+    extends State<AdminFeesScreen> {
   late final AdminService adminService;
 
-  List<AdminFeeModel> pendingFees = [];
+  // ============================================================
+  // DATA
+  // ============================================================
+
+  List<AdminFeeModel> fees = [];
+  List<dynamic> feeStructures = [];
+
   bool loading = true;
   bool paymentLoading = false;
   bool structureLoading = false;
 
+  // ============================================================
+  // INIT
+  // ============================================================
+
   @override
   void initState() {
     super.initState();
-    adminService = AdminService(ApiClient());
+
+    adminService = AdminService(
+      ApiClient(),
+    );
+
     loadFees();
   }
 
+  // ============================================================
+  // LOAD DATA
+  // ============================================================
+
   Future<void> loadFees() async {
     if (!mounted) return;
+
     setState(() {
       loading = true;
     });
 
     try {
-      final data = await adminService.getPendingFees();
+      final results = await Future.wait([
+        adminService.getPendingFees(),
+        adminService.getFeeStructures(),
+      ]);
+
       if (!mounted) return;
+
+      final pendingData =
+          results[0] as List<AdminFeeModel>;
+
+      final structureData =
+          results[1] as List<dynamic>;
+
       setState(() {
-        pendingFees = data;
+        fees = pendingData;
+        feeStructures = structureData;
         loading = false;
       });
     } catch (e) {
       if (!mounted) return;
+
       setState(() {
         loading = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Failed to load fees: $e"),
-          backgroundColor: AppColors.danger,
+          content: Text(
+            "Failed to load fee data: $e",
+          ),
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
-  double get totalPending {
-    return pendingFees.fold(0.0, (sum, fee) => sum + fee.pendingAmount);
-  }
+  // ============================================================
+  // SUMMARY
+  // ============================================================
 
   double get totalCollected {
-    return pendingFees.fold(0.0, (sum, fee) => sum + fee.paidAmount);
-  }
-
-  void showPaymentDialog(AdminFeeModel fee) {
-    final amountController = TextEditingController();
-    final transactionController = TextEditingController();
-    String paymentMethod = "CASH";
-
-    showDialog(
-      context: context,
-      barrierDismissible: !paymentLoading,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text("Record Fee Payment"),
-              content: SizedBox(
-                width: 450,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 14),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "Student #${fee.studentId}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primaryDark,
-                              ),
-                            ),
-                            Text(
-                              "Due: ₹${fee.pendingAmount.toStringAsFixed(2)}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.danger,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      inputField(
-                        amountController,
-                        "Amount to Pay (₹)",
-                        Icons.currency_rupee_rounded,
-                        keyboardType: TextInputType.number,
-                      ),
-                      DropdownButtonFormField<String>(
-                        initialValue: paymentMethod,
-                        decoration: const InputDecoration(
-                          labelText: "Payment Method",
-                          prefixIcon: Icon(Icons.payment_rounded, color: AppColors.primary),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "CASH", child: Text("Cash")),
-                          DropdownMenuItem(value: "ONLINE", child: Text("Online / UPI")),
-                          DropdownMenuItem(value: "CHEQUE", child: Text("Cheque")),
-                          DropdownMenuItem(value: "BANK_TRANSFER", child: Text("Bank Transfer")),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() => paymentMethod = val);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      inputField(
-                        transactionController,
-                        "Transaction / Ref ID (Optional)",
-                        Icons.tag_rounded,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: paymentLoading ? null : () => Navigator.pop(dialogContext),
-                  child: const Text("Cancel"),
-                ),
-                ElevatedButton(
-                  onPressed: paymentLoading
-                      ? null
-                      : () async {
-                          await recordPayment(
-                            dialogContext,
-                            fee,
-                            amountController.text,
-                            paymentMethod,
-                            transactionController.text,
-                            setDialogState,
-                          );
-                        },
-                  child: paymentLoading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text("Confirm Payment"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    return fees.fold(
+      0.0,
+      (sum, fee) => sum + fee.paidAmount,
     );
   }
 
-  Future<void> recordPayment(
-    BuildContext dialogContext,
-    AdminFeeModel fee,
-    String amountText,
-    String paymentMethod,
-    String transactionId,
-    void Function(void Function()) setDialogState,
-  ) async {
-    final amount = double.tryParse(amountText.trim());
-
-    if (amount == null || amount <= 0) {
-      showMessage("Please enter a valid positive payment amount");
-      return;
-    }
-
-    if (amount > fee.pendingAmount) {
-      showMessage("Amount cannot exceed the pending balance of ₹${fee.pendingAmount.toStringAsFixed(2)}");
-      return;
-    }
-
-    setDialogState(() {
-      paymentLoading = true;
-    });
-
-    try {
-      await adminService.recordPayment({
-        "student_fee_id": fee.id,
-        "amount": amount,
-        "payment_method": paymentMethod,
-        "transaction_id": transactionId.trim().isEmpty ? null : transactionId.trim(),
-      });
-
-      if (!dialogContext.mounted) return;
-      Navigator.pop(dialogContext);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Payment recorded successfully!"),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
-      await loadFees();
-    } catch (e) {
-      setDialogState(() {
-        paymentLoading = false;
-      });
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to record payment: $e"),
-          backgroundColor: AppColors.danger,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
+  double get totalPending {
+    return fees.fold(
+      0.0,
+      (sum, fee) => sum + fee.pendingAmount,
+    );
   }
 
+  double get totalFee {
+    return fees.fold(
+      0.0,
+      (sum, fee) => sum + fee.totalAmount,
+    );
+  }
+
+  int get paidStudents {
+    return fees.where(
+      (fee) => fee.pendingAmount <= 0,
+    ).length;
+  }
+
+  int get partialStudents {
+    return fees.where(
+      (fee) =>
+          fee.paidAmount > 0 &&
+          fee.pendingAmount > 0,
+    ).length;
+  }
+
+  int get pendingStudents {
+    return fees.where(
+      (fee) =>
+          fee.paidAmount <= 0 &&
+          fee.pendingAmount > 0,
+    ).length;
+  }
+
+  // ============================================================
+  // CREATE FEE STRUCTURE
+  // ============================================================
+
   void showFeeStructureDialog() {
-    final courseController = TextEditingController();
-    final feeTypeController = TextEditingController();
-    final amountController = TextEditingController();
-    final descriptionController = TextEditingController();
+    final courseController =
+        TextEditingController();
+
+    final feeTypeController =
+        TextEditingController();
+
+    final amountController =
+        TextEditingController();
+
+    final descriptionController =
+        TextEditingController();
 
     showDialog(
       context: context,
-      barrierDismissible: !structureLoading,
+      barrierDismissible:
+          !structureLoading,
       builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (
+            context,
+            setDialogState,
+          ) {
             return AlertDialog(
-              title: const Text("Create Fee Structure"),
+              title: const Text(
+                "Create Fee Structure",
+              ),
+
               content: SizedBox(
                 width: 450,
                 child: SingleChildScrollView(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize:
+                        MainAxisSize.min,
                     children: [
                       inputField(
                         courseController,
-                        "Course Name (e.g. MCA, B.Tech)",
+                        "Course",
                         Icons.school_rounded,
                       ),
+
                       inputField(
                         feeTypeController,
-                        "Fee Type (e.g. Tuition, Exam, Lab)",
+                        "Fee Type",
                         Icons.category_rounded,
                       ),
+
                       inputField(
                         amountController,
-                        "Total Amount (₹)",
+                        "Total Amount",
                         Icons.currency_rupee_rounded,
-                        keyboardType: TextInputType.number,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                       ),
+
                       inputField(
                         descriptionController,
-                        "Description (Optional)",
+                        "Description",
                         Icons.description_rounded,
-                        maxLines: 2,
+                        maxLines: 3,
                       ),
                     ],
                   ),
                 ),
               ),
+
               actions: [
                 TextButton(
-                  onPressed: structureLoading ? null : () => Navigator.pop(dialogContext),
-                  child: const Text("Cancel"),
+                  onPressed:
+                      structureLoading
+                          ? null
+                          : () {
+                              Navigator.pop(
+                                dialogContext,
+                              );
+                            },
+                  child:
+                      const Text("Cancel"),
                 ),
+
                 ElevatedButton(
-                  onPressed: structureLoading
-                      ? null
-                      : () async {
-                          await createFeeStructure(
-                            dialogContext,
-                            courseController.text,
-                            feeTypeController.text,
-                            amountController.text,
-                            descriptionController.text,
-                            setDialogState,
-                          );
-                        },
+                  onPressed:
+                      structureLoading
+                          ? null
+                          : () async {
+                              await createFeeStructure(
+                                dialogContext,
+                                courseController.text,
+                                feeTypeController.text,
+                                amountController.text,
+                                descriptionController.text,
+                                setDialogState,
+                              );
+                            },
                   child: structureLoading
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(
+                          child:
+                              CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,
                           ),
                         )
-                      : const Text("Create Structure"),
+                      : const Text(
+                          "Create Structure",
+                        ),
                 ),
               ],
             );
@@ -327,6 +261,10 @@ class _AdminFeesScreenState extends State<AdminFeesScreen> {
       },
     );
   }
+
+  // ============================================================
+  // CREATE FEE STRUCTURE API
+  // ============================================================
 
   Future<void> createFeeStructure(
     BuildContext dialogContext,
@@ -334,20 +272,34 @@ class _AdminFeesScreenState extends State<AdminFeesScreen> {
     String feeType,
     String amountText,
     String description,
-    void Function(void Function()) setDialogState,
+    void Function(
+      void Function(),
+    ) setDialogState,
   ) async {
-    final amount = double.tryParse(amountText.trim());
+    final amount =
+        double.tryParse(
+      amountText.trim(),
+    );
 
     if (course.trim().isEmpty) {
-      showMessage("Please enter course name");
+      showMessage(
+        "Please enter course name",
+      );
       return;
     }
+
     if (feeType.trim().isEmpty) {
-      showMessage("Please enter fee type");
+      showMessage(
+        "Please enter fee type",
+      );
       return;
     }
-    if (amount == null || amount <= 0) {
-      showMessage("Please enter a valid amount");
+
+    if (amount == null ||
+        amount <= 0) {
+      showMessage(
+        "Please enter a valid amount",
+      );
       return;
     }
 
@@ -356,22 +308,38 @@ class _AdminFeesScreenState extends State<AdminFeesScreen> {
     });
 
     try {
-      await adminService.createFeeStructure({
-        "course": course.trim(),
-        "fee_type": feeType.trim(),
-        "total_amount": amount,
-        "description": description.trim().isEmpty ? null : description.trim(),
-      });
+      await adminService.createFeeStructure(
+        {
+          "course": course.trim(),
+          "fee_type": feeType.trim(),
+          "total_amount": amount,
+          "description":
+              description.trim().isEmpty
+                  ? null
+                  : description.trim(),
+        },
+      );
 
-      if (!dialogContext.mounted) return;
-      Navigator.pop(dialogContext);
+      if (!dialogContext.mounted) {
+        return;
+      }
+
+      Navigator.pop(
+        dialogContext,
+      );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         const SnackBar(
-          content: Text("Fee structure created successfully!"),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
+          content: Text(
+            "Fee structure created successfully",
+          ),
+          backgroundColor:
+              Colors.green,
+          behavior:
+              SnackBarBehavior.floating,
         ),
       );
 
@@ -382,15 +350,976 @@ class _AdminFeesScreenState extends State<AdminFeesScreen> {
       });
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         SnackBar(
-          content: Text("Failed to create fee structure: $e"),
-          backgroundColor: AppColors.danger,
-          behavior: SnackBarBehavior.floating,
+          content: Text(
+            "Failed to create fee structure: $e",
+          ),
+          backgroundColor:
+              Colors.red,
+          behavior:
+              SnackBarBehavior.floating,
         ),
       );
     }
   }
+
+  // ============================================================
+  // RECORD PAYMENT
+  // ============================================================
+
+  void showPaymentDialog(
+    AdminFeeModel fee,
+  ) {
+    final amountController =
+        TextEditingController();
+
+    final transactionController =
+        TextEditingController();
+
+    String paymentMethod = "CASH";
+
+    showDialog(
+      context: context,
+      barrierDismissible:
+          !paymentLoading,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return AlertDialog(
+              title: const Text(
+                "Record Fee Payment",
+              ),
+
+              content: SizedBox(
+                width: 450,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding:
+                            const EdgeInsets.all(
+                          14,
+                        ),
+                        margin:
+                            const EdgeInsets.only(
+                          bottom: 16,
+                        ),
+                        decoration:
+                            BoxDecoration(
+                          color: Colors.blue
+                              .withOpacity(
+                            0.08,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(
+                            12,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            paymentInfo(
+                              "Total Fee",
+                              fee.totalAmount,
+                            ),
+                            paymentInfo(
+                              "Amount Paid",
+                              fee.paidAmount,
+                            ),
+                            paymentInfo(
+                              "Pending Amount",
+                              fee.pendingAmount,
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      inputField(
+                        amountController,
+                        "Payment Amount",
+                        Icons.currency_rupee_rounded,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 4,
+                      ),
+
+                      DropdownButtonFormField<
+                          String>(
+                        initialValue:
+                            paymentMethod,
+                        decoration:
+                            const InputDecoration(
+                          labelText:
+                              "Payment Method",
+                          prefixIcon:
+                              Icon(
+                            Icons.payment_rounded,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: "CASH",
+                            child:
+                                Text("Cash"),
+                          ),
+                          DropdownMenuItem(
+                            value: "ONLINE",
+                            child: Text(
+                              "Online / UPI",
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: "CHEQUE",
+                            child:
+                                Text("Cheque"),
+                          ),
+                          DropdownMenuItem(
+                            value:
+                                "BANK_TRANSFER",
+                            child: Text(
+                              "Bank Transfer",
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: "CARD",
+                            child:
+                                Text("Card"),
+                          ),
+                        ],
+                        onChanged:
+                            (value) {
+                          if (value ==
+                              null) {
+                            return;
+                          }
+
+                          setDialogState(() {
+                            paymentMethod =
+                                value;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(
+                        height: 12,
+                      ),
+
+                      inputField(
+                        transactionController,
+                        "Transaction / Reference ID",
+                        Icons.receipt_long_rounded,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              actions: [
+                TextButton(
+                  onPressed:
+                      paymentLoading
+                          ? null
+                          : () {
+                              Navigator.pop(
+                                dialogContext,
+                              );
+                            },
+                  child:
+                      const Text("Cancel"),
+                ),
+
+                ElevatedButton(
+                  onPressed:
+                      paymentLoading
+                          ? null
+                          : () async {
+                              await recordPayment(
+                                dialogContext,
+                                fee,
+                                amountController.text,
+                                paymentMethod,
+                                transactionController.text,
+                                setDialogState,
+                              );
+                            },
+                  child: paymentLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          "Confirm Payment",
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // PAYMENT API
+  // ============================================================
+
+  Future<void> recordPayment(
+    BuildContext dialogContext,
+    AdminFeeModel fee,
+    String amountText,
+    String paymentMethod,
+    String transactionId,
+    void Function(
+      void Function(),
+    ) setDialogState,
+  ) async {
+    final amount =
+        double.tryParse(
+      amountText.trim(),
+    );
+
+    if (amount == null ||
+        amount <= 0) {
+      showMessage(
+        "Please enter a valid payment amount",
+      );
+      return;
+    }
+
+    if (amount >
+        fee.pendingAmount) {
+      showMessage(
+        "Payment cannot exceed pending amount of ₹${fee.pendingAmount.toStringAsFixed(2)}",
+      );
+      return;
+    }
+
+    setDialogState(() {
+      paymentLoading = true;
+    });
+
+    try {
+      await adminService.recordPayment(
+        {
+          "student_fee_id": fee.id,
+          "student_id": fee.studentId,
+          "amount": amount,
+          "payment_method":
+              paymentMethod,
+          "transaction_id":
+              transactionId.trim().isEmpty
+                  ? null
+                  : transactionId.trim(),
+        },
+      );
+
+      if (!dialogContext.mounted) {
+        return;
+      }
+
+      Navigator.pop(
+        dialogContext,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Payment recorded successfully",
+          ),
+          backgroundColor:
+              Colors.green,
+          behavior:
+              SnackBarBehavior.floating,
+        ),
+      );
+
+      await loadFees();
+    } catch (e) {
+      setDialogState(() {
+        paymentLoading = false;
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(
+            "Payment failed: $e",
+          ),
+          backgroundColor:
+              Colors.red,
+          behavior:
+              SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ============================================================
+  // FEE STRUCTURE CARD
+  // ============================================================
+
+  Widget feeStructureCard(
+    dynamic structure,
+  ) {
+    final data =
+        Map<String, dynamic>.from(
+      structure as Map,
+    );
+
+    final course =
+        data["course"]?.toString() ??
+            "-";
+
+    final feeType =
+        data["fee_type"]?.toString() ??
+            "-";
+
+    final amount =
+        toDouble(
+      data["total_amount"],
+    );
+
+    final description =
+        data["description"]?.toString() ??
+            "";
+
+    return Card(
+      margin:
+          const EdgeInsets.only(
+        bottom: 10,
+      ),
+      elevation: 1,
+      shape:
+          RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(
+          14,
+        ),
+      ),
+      child: Padding(
+        padding:
+            const EdgeInsets.all(
+          15,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration:
+                  BoxDecoration(
+                color: Colors.blue
+                    .withOpacity(
+                  0.10,
+                ),
+                borderRadius:
+                    BorderRadius.circular(
+                  12,
+                ),
+              ),
+              child: const Icon(
+                Icons
+                    .account_balance_wallet_rounded,
+                color: Colors.blue,
+              ),
+            ),
+
+            const SizedBox(
+              width: 13,
+            ),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment
+                        .start,
+                children: [
+                  Text(
+                    feeType,
+                    style:
+                        const TextStyle(
+                      fontSize: 16,
+                      fontWeight:
+                          FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 4,
+                  ),
+
+                  Text(
+                    "Course: $course",
+                    style:
+                        const TextStyle(
+                      color:
+                          Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+
+                  if (description
+                      .isNotEmpty)
+                    Padding(
+                      padding:
+                          const EdgeInsets
+                              .only(
+                        top: 3,
+                      ),
+                      child: Text(
+                        description,
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.grey,
+                          fontSize:
+                              11,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(
+              width: 10,
+            ),
+
+            Text(
+              "₹${amount.toStringAsFixed(2)}",
+              style:
+                  const TextStyle(
+                fontWeight:
+                    FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // STUDENT FEE CARD
+  // ============================================================
+
+  Widget feeCard(
+    AdminFeeModel fee,
+  ) {
+    final bool isPaid =
+        fee.pendingAmount <= 0;
+
+    final bool isPartial =
+        fee.paidAmount > 0 &&
+        fee.pendingAmount > 0;
+
+    final Color statusColor =
+        isPaid
+            ? Colors.green
+            : isPartial
+                ? Colors.orange
+                : Colors.red;
+
+    final String status =
+        isPaid
+            ? "PAID"
+            : isPartial
+                ? "PARTIALLY PAID"
+                : "PENDING";
+
+    return Card(
+      margin:
+          const EdgeInsets.only(
+        bottom: 12,
+      ),
+      elevation: 1.5,
+      shape:
+          RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+      ),
+      child: Padding(
+        padding:
+            const EdgeInsets.all(
+          16,
+        ),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment
+                  .start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor:
+                      Colors.blue
+                          .withOpacity(
+                    0.10,
+                  ),
+                  child:
+                      const Icon(
+                    Icons.person,
+                    color:
+                        Colors.blue,
+                  ),
+                ),
+
+                const SizedBox(
+                  width: 12,
+                ),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start,
+                    children: [
+                      Text(
+                        "Student #${fee.studentId}",
+                        style:
+                            const TextStyle(
+                          fontSize: 16,
+                          fontWeight:
+                              FontWeight
+                                  .bold,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        height: 3,
+                      ),
+
+                      Text(
+                        "Fee ID: ${fee.id}",
+                        style:
+                            const TextStyle(
+                          color:
+                              Colors.grey,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  padding:
+                      const EdgeInsets
+                          .symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration:
+                      BoxDecoration(
+                    color: statusColor
+                        .withOpacity(
+                      0.10,
+                    ),
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      20,
+                    ),
+                  ),
+                  child: Text(
+                    status,
+                    style:
+                        TextStyle(
+                      color:
+                          statusColor,
+                      fontWeight:
+                          FontWeight
+                              .bold,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const Divider(
+              height: 28,
+            ),
+
+            Row(
+              children: [
+                Expanded(
+                  child: amountColumn(
+                    "Total Fee",
+                    fee.totalAmount,
+                    Colors.blue,
+                  ),
+                ),
+
+                Expanded(
+                  child: amountColumn(
+                    "Amount Paid",
+                    fee.paidAmount,
+                    Colors.green,
+                  ),
+                ),
+
+                Expanded(
+                  child: amountColumn(
+                    "Pending",
+                    fee.pendingAmount,
+                    Colors.red,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 15,
+            ),
+
+            paymentProgress(
+              fee.totalAmount,
+              fee.paidAmount,
+            ),
+
+            if (fee.pendingAmount >
+                0) ...[
+              const SizedBox(
+                height: 14,
+              ),
+
+              SizedBox(
+                width:
+                    double.infinity,
+                child:
+                    ElevatedButton.icon(
+                  onPressed:
+                      paymentLoading
+                          ? null
+                          : () {
+                              showPaymentDialog(
+                                fee,
+                              );
+                            },
+                  icon:
+                      const Icon(
+                    Icons
+                        .payments_rounded,
+                    size: 18,
+                  ),
+                  label:
+                      const Text(
+                    "COLLECT PAYMENT",
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // AMOUNT COLUMN
+  // ============================================================
+
+  Widget amountColumn(
+    String title,
+    double amount,
+    Color color,
+  ) {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment
+              .start,
+      children: [
+        Text(
+          title,
+          style:
+              const TextStyle(
+            color: Colors.grey,
+            fontSize: 11,
+          ),
+        ),
+
+        const SizedBox(
+          height: 5,
+        ),
+
+        Text(
+          "₹${amount.toStringAsFixed(2)}",
+          style:
+              TextStyle(
+            color: color,
+            fontWeight:
+                FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // PAYMENT PROGRESS
+  // ============================================================
+
+  Widget paymentProgress(
+    double total,
+    double paid,
+  ) {
+    double progress = 0;
+
+    if (total > 0) {
+      progress = paid / total;
+    }
+
+    progress =
+        progress.clamp(
+      0.0,
+      1.0,
+    );
+
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment
+              .start,
+      children: [
+        Row(
+          mainAxisAlignment:
+              MainAxisAlignment
+                  .spaceBetween,
+          children: [
+            const Text(
+              "Payment Progress",
+              style:
+                  TextStyle(
+                color:
+                    Colors.grey,
+                fontSize: 11,
+              ),
+            ),
+
+            Text(
+              "${(progress * 100).toStringAsFixed(0)}%",
+              style:
+                  const TextStyle(
+                fontWeight:
+                    FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(
+          height: 6,
+        ),
+
+        ClipRRect(
+          borderRadius:
+              BorderRadius.circular(
+            10,
+          ),
+          child:
+              LinearProgressIndicator(
+            value: progress,
+            minHeight: 7,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // SUMMARY CARD
+  // ============================================================
+
+  Widget summaryCard({
+    required String title,
+    required double amount,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding:
+            const EdgeInsets.all(
+          15,
+        ),
+        decoration:
+            BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+              BorderRadius.circular(
+            16,
+          ),
+          border: Border.all(
+            color:
+                Colors.grey.shade200,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color:
+                  Color(0x08000000),
+              blurRadius: 8,
+              offset:
+                  Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment:
+              CrossAxisAlignment
+                  .start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration:
+                  BoxDecoration(
+                color: color
+                    .withOpacity(
+                  0.10,
+                ),
+                borderRadius:
+                    BorderRadius
+                        .circular(
+                  10,
+                ),
+              ),
+              child:
+                  Icon(
+                icon,
+                color: color,
+                size: 21,
+              ),
+            ),
+
+            const SizedBox(
+              height: 10,
+            ),
+
+            Text(
+              title,
+              style:
+                  const TextStyle(
+                color:
+                    Colors.grey,
+                fontSize: 11,
+              ),
+            ),
+
+            const SizedBox(
+              height: 4,
+            ),
+
+            Text(
+              "₹${amount.toStringAsFixed(2)}",
+              style:
+                  const TextStyle(
+                fontSize: 17,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // STATUS CARD
+  // ============================================================
+
+  Widget statusCard({
+    required String title,
+    required int count,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        padding:
+            const EdgeInsets.all(
+          12,
+        ),
+        decoration:
+            BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+              BorderRadius.circular(
+            14,
+          ),
+          border: Border.all(
+            color:
+                Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 25,
+            ),
+
+            const SizedBox(
+              height: 5,
+            ),
+
+            Text(
+              count.toString(),
+              style:
+                  TextStyle(
+                color: color,
+                fontSize: 19,
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            Text(
+              title,
+              style:
+                  const TextStyle(
+                color:
+                    Colors.grey,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // INPUT FIELD
+  // ============================================================
 
   Widget inputField(
     TextEditingController controller,
@@ -400,295 +1329,547 @@ class _AdminFeesScreenState extends State<AdminFeesScreen> {
     int maxLines = 1,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding:
+          const EdgeInsets.only(
+        bottom: 12,
+      ),
       child: TextField(
         controller: controller,
-        keyboardType: keyboardType,
+        keyboardType:
+            keyboardType,
         maxLines: maxLines,
-        decoration: InputDecoration(
+        decoration:
+            InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+          prefixIcon:
+              Icon(icon),
+          border:
+              OutlineInputBorder(
+            borderRadius:
+                BorderRadius.circular(
+              12,
+            ),
+          ),
         ),
       ),
     );
   }
 
-  void showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  // ============================================================
+  // PAYMENT INFO
+  // ============================================================
 
-  Widget summaryCard(
-    String title,
+  Widget paymentInfo(
+    String label,
     double amount,
-    IconData icon,
-    Color iconColor,
   ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.cardBorder),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x060F172A),
-              blurRadius: 10,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 22, color: iconColor),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              "₹${amount.toStringAsFixed(2)}",
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.2,
-              ),
-            ),
-          ],
-        ),
+    return Padding(
+      padding:
+          const EdgeInsets
+              .symmetric(
+        vertical: 4,
       ),
-    );
-  }
+      child: Row(
+        mainAxisAlignment:
+            MainAxisAlignment
+                .spaceBetween,
+        children: [
+          Text(label),
 
-  Widget feeCard(AdminFeeModel fee) {
-    final isPaid = fee.pendingAmount <= 0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x060F172A),
-            blurRadius: 10,
-            offset: Offset(0, 3),
+          Text(
+            "₹${amount.toStringAsFixed(2)}",
+            style:
+                const TextStyle(
+              fontWeight:
+                  FontWeight.bold,
+            ),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppColors.primarySoft,
-                  child: const Icon(
-                    Icons.school_rounded,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Student #${fee.studentId}",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      StatusBadge(status: fee.status, compact: true),
-                    ],
-                  ),
-                ),
-                if (!isPaid)
-                  ElevatedButton.icon(
-                    onPressed: paymentLoading ? null : () => showPaymentDialog(fee),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    ),
-                    icon: const Icon(Icons.payment_rounded, size: 16),
-                    label: const Text("Collect", style: TextStyle(fontSize: 13)),
-                  ),
-              ],
+    );
+  }
+
+  // ============================================================
+  // SECTION TITLE
+  // ============================================================
+
+  Widget sectionTitle(
+    String title, {
+    String? subtitle,
+  }) {
+    return Padding(
+      padding:
+          const EdgeInsets.only(
+        top: 20,
+        bottom: 12,
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment
+                .start,
+        children: [
+          Text(
+            title,
+            style:
+                const TextStyle(
+              fontSize: 19,
+              fontWeight:
+                  FontWeight.bold,
             ),
-            const SizedBox(height: 14),
-            const Divider(),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                amountColumn("Total Fee", fee.totalAmount, AppColors.textPrimary),
-                amountColumn("Collected", fee.paidAmount, AppColors.success),
-                amountColumn("Pending Due", fee.pendingAmount, AppColors.danger),
-              ],
+          ),
+
+          if (subtitle !=
+              null) ...[
+            const SizedBox(
+              height: 3,
+            ),
+
+            Text(
+              subtitle,
+              style:
+                  const TextStyle(
+                color:
+                    Colors.grey,
+                fontSize: 12,
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget amountColumn(String title, double amount, Color valueColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          "₹${amount.toStringAsFixed(2)}",
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 14,
-            color: valueColor,
-          ),
-        ),
-      ],
+  // ============================================================
+  // DOUBLE CONVERSION
+  // ============================================================
+
+  double toDouble(
+    dynamic value,
+  ) {
+    if (value == null) {
+      return 0;
+    }
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(
+          value.toString(),
+        ) ??
+        0;
+  }
+
+  // ============================================================
+  // MESSAGE
+  // ============================================================
+
+  void showMessage(
+    String message,
+  ) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content:
+            Text(message),
+        behavior:
+            SnackBarBehavior
+                .floating,
+      ),
     );
   }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("Fees & Collections"),
+        title: const Text(
+          "Fees & Collections",
+        ),
         actions: [
           IconButton(
-            tooltip: "Refresh",
-            onPressed: loading ? null : loadFees,
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: "Add Fee Structure",
-            onPressed: showFeeStructureDialog,
-            icon: const Icon(Icons.add_card_rounded),
+            tooltip:
+                "Refresh",
+            onPressed:
+                loading
+                    ? null
+                    : loadFees,
+            icon:
+                const Icon(
+              Icons.refresh,
+            ),
           ),
         ],
       ),
+
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child:
+                  CircularProgressIndicator(),
+            )
           : RefreshIndicator(
-              onRefresh: loadFees,
-              color: AppColors.primary,
+              onRefresh:
+                  loadFees,
               child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
+                physics:
+                    const AlwaysScrollableScrollPhysics(),
+                padding:
+                    const EdgeInsets.all(
+                  14,
+                ),
                 children: [
+                  // ==================================================
+                  // COLLECTION SUMMARY
+                  // ==================================================
+
+                  sectionTitle(
+                    "Collection Summary",
+                    subtitle:
+                        "Overall student fee collection",
+                  ),
+
+                  LayoutBuilder(
+                    builder:
+                        (
+                      context,
+                      constraints,
+                    ) {
+                      final width =
+                          constraints
+                              .maxWidth;
+
+                      if (width <
+                          600) {
+                        return Column(
+                          children: [
+                            Row(
+                              children: [
+                                summaryCard(
+                                  title:
+                                      "Collected Revenue",
+                                  amount:
+                                      totalCollected,
+                                  icon:
+                                      Icons.check_circle_outline,
+                                  color:
+                                      Colors.green,
+                                ),
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                                summaryCard(
+                                  title:
+                                      "Outstanding Balance",
+                                  amount:
+                                      totalPending,
+                                  icon:
+                                      Icons.pending_actions,
+                                  color:
+                                      Colors.red,
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(
+                              height: 10,
+                            ),
+
+                            Row(
+                              children: [
+                                summaryCard(
+                                  title:
+                                      "Total Fee",
+                                  amount:
+                                      totalFee,
+                                  icon:
+                                      Icons.account_balance_wallet_outlined,
+                                  color:
+                                      Colors.blue,
+                                ),
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                                summaryCard(
+                                  title:
+                                      "Pending Students",
+                                  amount:
+                                      pendingStudents.toDouble(),
+                                  icon:
+                                      Icons.people_outline,
+                                  color:
+                                      Colors.orange,
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          summaryCard(
+                            title:
+                                "Collected Revenue",
+                            amount:
+                                totalCollected,
+                            icon:
+                                Icons.check_circle_outline,
+                            color:
+                                Colors.green,
+                          ),
+
+                          const SizedBox(
+                            width: 10,
+                          ),
+
+                          summaryCard(
+                            title:
+                                "Outstanding Balance",
+                            amount:
+                                totalPending,
+                            icon:
+                                Icons.pending_actions,
+                            color:
+                                Colors.red,
+                          ),
+
+                          const SizedBox(
+                            width: 10,
+                          ),
+
+                          summaryCard(
+                            title:
+                                "Total Fee",
+                            amount:
+                                totalFee,
+                            icon:
+                                Icons.account_balance_wallet_outlined,
+                            color:
+                                Colors.blue,
+                          ),
+
+                          const SizedBox(
+                            width: 10,
+                          ),
+
+                          summaryCard(
+                            title:
+                                "Pending Students",
+                            amount:
+                                pendingStudents.toDouble(),
+                            icon:
+                                Icons.people_outline,
+                            color:
+                                Colors.orange,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
+                  // ==================================================
+                  // CREATE BUTTON
+                  // ==================================================
+
+                  const SizedBox(
+                    height: 18,
+                  ),
+
+                  SizedBox(
+                    width:
+                        double.infinity,
+                    height: 48,
+                    child:
+                        ElevatedButton.icon(
+                      onPressed:
+                          structureLoading
+                              ? null
+                              : showFeeStructureDialog,
+                      icon:
+                          const Icon(
+                        Icons.add,
+                      ),
+                      label:
+                          const Text(
+                        "CREATE FEE STRUCTURE",
+                      ),
+                    ),
+                  ),
+
+                  // ==================================================
+                  // PAYMENT STATUS
+                  // ==================================================
+
+                  sectionTitle(
+                    "Payment Status",
+                  ),
+
                   Row(
                     children: [
-                      summaryCard(
-                        "Collected Revenue",
-                        totalCollected,
-                        Icons.check_circle_outline_rounded,
-                        AppColors.success,
+                      statusCard(
+                        title:
+                            "Paid",
+                        count:
+                            paidStudents,
+                        color:
+                            Colors.green,
+                        icon:
+                            Icons.check_circle,
                       ),
-                      const SizedBox(width: 12),
-                      summaryCard(
-                        "Outstanding Balance",
-                        totalPending,
-                        Icons.pending_actions_rounded,
-                        AppColors.danger,
+
+                      const SizedBox(
+                        width: 8,
+                      ),
+
+                      statusCard(
+                        title:
+                            "Partially Paid",
+                        count:
+                            partialStudents,
+                        color:
+                            Colors.orange,
+                        icon:
+                            Icons.timelapse,
+                      ),
+
+                      const SizedBox(
+                        width: 8,
+                      ),
+
+                      statusCard(
+                        title:
+                            "Pending",
+                        count:
+                            pendingStudents,
+                        color:
+                            Colors.red,
+                        icon:
+                            Icons.pending,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: structureLoading ? null : showFeeStructureDialog,
-                      icon: const Icon(Icons.add_rounded),
-                      label: const Text(
-                        "CREATE FEE STRUCTURE",
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
+
+                  // ==================================================
+                  // CREATED FEE STRUCTURES
+                  // ==================================================
+
+                  sectionTitle(
+                    "Created Fee Structures",
+                    subtitle:
+                        "Fee structures created by Admin",
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    "Outstanding Invoices",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (pendingFees.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(40),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: Center(
-                        child: Column(
-                          children: const [
-                            Icon(
-                              Icons.task_alt_rounded,
-                              size: 46,
-                              color: AppColors.success,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              "All student fees are fully settled!",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+
+                  if (feeStructures
+                      .isEmpty)
+                    emptyBox(
+                      icon:
+                          Icons
+                              .account_balance_wallet_outlined,
+                      message:
+                          "No fee structures have been created yet.",
                     )
                   else
-                    ...pendingFees.map(feeCard),
-                  const SizedBox(height: 20),
+                    ...feeStructures
+                        .where(
+                          (item) =>
+                              item is Map,
+                        )
+                        .map(
+                          feeStructureCard,
+                        ),
+
+                  // ==================================================
+                  // STUDENT COLLECTION
+                  // ==================================================
+
+                  sectionTitle(
+                    "Student Fee Collection",
+                    subtitle:
+                        "Total fee, amount paid and pending amount",
+                  ),
+
+                  if (fees.isEmpty)
+                    emptyBox(
+                      icon:
+                          Icons
+                              .receipt_long_outlined,
+                      message:
+                          "No student fee records found.",
+                    )
+                  else
+                    ...fees.map(
+                      feeCard,
+                    ),
+
+                  const SizedBox(
+                    height: 30,
+                  ),
                 ],
               ),
             ),
+    );
+  }
+
+  // ============================================================
+  // EMPTY BOX
+  // ============================================================
+
+  Widget emptyBox({
+    required IconData icon,
+    required String message,
+  }) {
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.all(
+        28,
+      ),
+      decoration:
+          BoxDecoration(
+        color: Colors.white,
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
+        border: Border.all(
+          color:
+              Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 46,
+            color:
+                Colors.grey,
+          ),
+
+          const SizedBox(
+            height: 10,
+          ),
+
+          Text(
+            message,
+            textAlign:
+                TextAlign.center,
+            style:
+                const TextStyle(
+              color:
+                  Colors.grey,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

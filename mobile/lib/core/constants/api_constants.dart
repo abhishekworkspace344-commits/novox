@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
@@ -9,16 +11,36 @@ class ApiConstants {
       String.fromEnvironment("API_BASE_URL");
 
   static String get baseUrl {
+    // ---------------------------------------------------------
+    // 1. Explicit URL passed using --dart-define
+    // ---------------------------------------------------------
     if (_configuredBaseUrl.isNotEmpty) {
       return _configuredBaseUrl;
     }
 
-    // Web running on PC
+    // ---------------------------------------------------------
+    // 2. Flutter Web
+    // ---------------------------------------------------------
     if (kIsWeb) {
       return "http://127.0.0.1:8000";
     }
 
-    // Android physical device through ADB reverse
+    // ---------------------------------------------------------
+    // 3. Physical Android phone
+    //
+    // PC IPv4:
+    // 192.168.29.166
+    //
+    // FastAPI:
+    // Port 8000
+    // ---------------------------------------------------------
+    if (Platform.isAndroid) {
+      return "http://192.168.29.166:8000";
+    }
+
+    // ---------------------------------------------------------
+    // 4. Windows desktop / other platforms
+    // ---------------------------------------------------------
     return "http://127.0.0.1:8000";
   }
 
@@ -26,14 +48,19 @@ class ApiConstants {
   // AUTHENTICATION
   // =========================================================
 
-  static const String login = "/auth/login";
+  static const String login =
+      "/auth/login";
 
   // =========================================================
   // STUDENT
   // =========================================================
 
-  static const String studentDashboard = "/student/dashboard";
-  static const String myFees = "/fees/my-fees";
+  static const String studentDashboard =
+      "/student/dashboard";
+
+  static const String myFees =
+      "/fees/my-fees";
+
   static const String myPaymentHistory =
       "/fees/my-payment-history";
 
@@ -41,23 +68,34 @@ class ApiConstants {
   // STAFF
   // =========================================================
 
-  static const String staffDashboard = "/staff/dashboard";
-  static const String staffProfile = "/staff/profile";
-  static const String staffSalary = "/salary/my-slips";
+  static const String staffDashboard =
+      "/staff/dashboard";
+
+  static const String staffProfile =
+      "/staff/profile";
+
+  static const String staffSalary =
+      "/salary/my-slips";
 
   // =========================================================
   // ADMIN
   // =========================================================
 
-  static const String adminDashboard = "/admin/dashboard";
+  static const String adminDashboard =
+      "/admin/dashboard";
+
   static const String adminAttendance =
       "/admin/attendance/today";
+
   static const String adminPendingFees =
       "/admin/fees/pending";
+
   static const String adminStudents =
       "/admin/management/students";
+
   static const String adminStaff =
       "/admin/management/staff";
+
   static const String adminGeofence =
       "/admin/geofence";
 
@@ -84,25 +122,34 @@ class ApiConstants {
   // FEES
   // =========================================================
 
+  // Create / view fee structures
   static const String feeStructure =
       "/fees/structure";
 
+  // Student fee assignment / management
   static const String studentFee =
       "/fees/student";
 
+  // Payment collection
   static const String feePayment =
       "/fees/payment";
 
+  // Pending fees
   static const String pendingFees =
       "/fees/pending";
 
+  // Student-specific fee details
   static const String feeStudent =
       "/fees/student";
 
+  // Receipt
   static const String feeReceipt =
       "/fees/receipt";
 
-  static String feeReceiptPdf(String receiptNumber) {
+  // Receipt PDF
+  static String feeReceiptPdf(
+    String receiptNumber,
+  ) {
     return "/fees/receipt/$receiptNumber/pdf";
   }
 
@@ -132,6 +179,7 @@ class ApiConstants {
   static const String lateEntryReport =
       "/admin/reports/late-entry";
 
+  // Admin fee collection report
   static const String feeReport =
       "/admin/reports/fees";
 

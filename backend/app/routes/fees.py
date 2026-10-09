@@ -1,13 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+
 from app.models.payment import Payment
-from app.core.dependencies import get_current_user
+from app.core.dependencies import (
+    get_current_user,
+    get_db,
+    require_role,
+)
 from app.models.user import User
 from app.models.student import Student
-
-from app.core.dependencies import get_db, require_role
 from app.models.fee import FeeStructure, StudentFee
+
 from app.schemas.fee import (
     FeeStructureCreate,
     FeeStructureResponse,
@@ -16,24 +20,55 @@ from app.schemas.fee import (
     PaymentCreate,
     PaymentResponse,
 )
+
 from app.services.fee_service import (
     create_fee_structure,
     assign_student_fee,
     create_payment,
 )
+
 from app.services.pdf_service import generate_fee_receipt
 
-router = APIRouter(prefix="/fees", tags=["Fees"])
+
+router = APIRouter(
+    prefix="/fees",
+    tags=["Fees"],
+)
 
 
-# --------------------------------------------------
+# ============================================================
+# ADMIN — GET ALL FEE STRUCTURES
+# ============================================================
+
+@router.get(
+    "/structure",
+    response_model=list[FeeStructureResponse],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
+)
+def get_fee_structures(
+    db: Session = Depends(get_db),
+):
+    return (
+        db.query(FeeStructure)
+        .order_by(
+            FeeStructure.created_at.desc()
+        )
+        .all()
+    )
+
+
+# ============================================================
 # ADMIN — CREATE FEE STRUCTURE
-# --------------------------------------------------
+# ============================================================
 
 @router.post(
     "/structure",
     response_model=FeeStructureResponse,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
 )
 def create_structure(
     data: FeeStructureCreate,
@@ -48,14 +83,16 @@ def create_structure(
     )
 
 
-# --------------------------------------------------
+# ============================================================
 # ADMIN — ASSIGN FEE TO STUDENT
-# --------------------------------------------------
+# ============================================================
 
 @router.post(
     "/student",
     response_model=StudentFeeResponse,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
 )
 def create_student_fee(
     data: StudentFeeCreate,
@@ -69,14 +106,16 @@ def create_student_fee(
     )
 
 
-# --------------------------------------------------
+# ============================================================
 # ADMIN — RECORD PAYMENT
-# --------------------------------------------------
+# ============================================================
 
 @router.post(
     "/payment",
     response_model=PaymentResponse,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
 )
 def record_payment(
     data: PaymentCreate,
@@ -84,7 +123,10 @@ def record_payment(
 ):
     student_fee = (
         db.query(StudentFee)
-        .filter(StudentFee.id == data.student_fee_id)
+        .filter(
+            StudentFee.id
+            == data.student_fee_id
+        )
         .first()
     )
 
@@ -102,6 +144,7 @@ def record_payment(
             payment_method=data.payment_method,
             transaction_id=data.transaction_id,
         )
+
     except ValueError as e:
         raise HTTPException(
             status_code=400,
@@ -109,34 +152,42 @@ def record_payment(
         )
 
 
-# --------------------------------------------------
+# ============================================================
 # ADMIN — PENDING FEES
-# --------------------------------------------------
+# ============================================================
 
 @router.get(
     "/pending",
     response_model=list[StudentFeeResponse],
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
 )
 def pending_fees(
     db: Session = Depends(get_db),
 ):
     return (
         db.query(StudentFee)
-        .filter(StudentFee.status != "PAID")
-        .order_by(StudentFee.created_at.desc())
+        .filter(
+            StudentFee.status != "PAID"
+        )
+        .order_by(
+            StudentFee.created_at.desc()
+        )
         .all()
     )
 
 
-# --------------------------------------------------
+# ============================================================
 # ADMIN — STUDENT FEE DETAILS
-# --------------------------------------------------
+# ============================================================
 
 @router.get(
     "/student/{student_id}",
     response_model=list[StudentFeeResponse],
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
 )
 def student_fee_details(
     student_id: int,
@@ -144,15 +195,27 @@ def student_fee_details(
 ):
     return (
         db.query(StudentFee)
-        .filter(StudentFee.student_id == student_id)
-        .order_by(StudentFee.created_at.desc())
+        .filter(
+            StudentFee.student_id
+            == student_id
+        )
+        .order_by(
+            StudentFee.created_at.desc()
+        )
         .all()
     )
+
+
+# ============================================================
+# ADMIN — PAYMENT HISTORY
+# ============================================================
 
 @router.get(
     "/payments/{student_fee_id}",
     response_model=list[PaymentResponse],
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
 )
 def payment_history(
     student_fee_id: int,
@@ -160,17 +223,29 @@ def payment_history(
 ):
     payments = (
         db.query(Payment)
-        .filter(Payment.student_fee_id == student_fee_id)
-        .order_by(Payment.payment_date.desc())
+        .filter(
+            Payment.student_fee_id
+            == student_fee_id
+        )
+        .order_by(
+            Payment.payment_date.desc()
+        )
         .all()
     )
 
     return payments
 
+
+# ============================================================
+# ADMIN — GET RECEIPT
+# ============================================================
+
 @router.get(
     "/receipt/{receipt_number}",
     response_model=PaymentResponse,
-    dependencies=[Depends(require_role("admin"))],
+    dependencies=[
+        Depends(require_role("admin"))
+    ],
 )
 def get_receipt(
     receipt_number: str,
@@ -178,7 +253,10 @@ def get_receipt(
 ):
     payment = (
         db.query(Payment)
-        .filter(Payment.receipt_number == receipt_number)
+        .filter(
+            Payment.receipt_number
+            == receipt_number
+        )
         .first()
     )
 
@@ -191,12 +269,18 @@ def get_receipt(
     return payment
 
 
+# ============================================================
+# STUDENT — MY FEES
+# ============================================================
+
 @router.get(
     "/my-fees",
 )
 def my_fees(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user
+    ),
 ):
     if current_user.role != "student":
         raise HTTPException(
@@ -207,11 +291,11 @@ def my_fees(
     student = (
         db.query(Student)
         .filter(
-            Student.user_id == current_user.id
+            Student.user_id
+            == current_user.id
         )
         .first()
     )
-
 
     if not student:
         raise HTTPException(
@@ -222,7 +306,8 @@ def my_fees(
     return (
         db.query(StudentFee)
         .filter(
-            StudentFee.student_id == student.id
+            StudentFee.student_id
+            == student.id
         )
         .order_by(
             StudentFee.created_at.desc()
@@ -231,25 +316,57 @@ def my_fees(
     )
 
 
-@router.get("/my-payment-history", response_model=list[PaymentResponse])
+# ============================================================
+# STUDENT — MY PAYMENT HISTORY
+# ============================================================
+
+@router.get(
+    "/my-payment-history",
+    response_model=list[PaymentResponse],
+)
 def my_payment_history(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user
+    ),
 ):
     if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Student access required")
+        raise HTTPException(
+            status_code=403,
+            detail="Student access required",
+        )
 
-    student = db.query(Student).filter(Student.user_id == current_user.id).first()
+    student = (
+        db.query(Student)
+        .filter(
+            Student.user_id
+            == current_user.id
+        )
+        .first()
+    )
+
     if not student:
-        raise HTTPException(status_code=404, detail="Student profile not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Student profile not found",
+        )
 
     return (
         db.query(Payment)
-        .filter(Payment.student_id == student.id)
-        .order_by(Payment.payment_date.desc())
+        .filter(
+            Payment.student_id
+            == student.id
+        )
+        .order_by(
+            Payment.payment_date.desc()
+        )
         .all()
     )
 
+
+# ============================================================
+# RECEIPT PDF
+# ============================================================
 
 @router.get(
     "/receipt/{receipt_number}/pdf",
@@ -257,50 +374,124 @@ def my_payment_history(
 def download_fee_receipt(
     receipt_number: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user
+    ),
 ):
     payment = (
         db.query(Payment)
-        .filter(Payment.receipt_number == receipt_number)
+        .filter(
+            Payment.receipt_number
+            == receipt_number
+        )
         .first()
     )
 
     if not payment:
-        raise HTTPException(status_code=404, detail="Receipt not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Receipt not found",
+        )
+
+    # --------------------------------------------------------
+    # STUDENT CAN ONLY ACCESS OWN RECEIPT
+    # --------------------------------------------------------
 
     if current_user.role == "student":
-        student = db.query(Student).filter(Student.user_id == current_user.id).first()
-        if not student or payment.student_id != student.id:
-            raise HTTPException(status_code=403, detail="This receipt belongs to another student")
+
+        student = (
+            db.query(Student)
+            .filter(
+                Student.user_id
+                == current_user.id
+            )
+            .first()
+        )
+
+        if (
+            not student
+            or payment.student_id
+            != student.id
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "This receipt belongs "
+                    "to another student"
+                ),
+            )
+
+    # --------------------------------------------------------
+    # ONLY ADMIN OR STUDENT
+    # --------------------------------------------------------
+
     elif current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Receipt access denied")
+
+        raise HTTPException(
+            status_code=403,
+            detail="Receipt access denied",
+        )
+
+    # --------------------------------------------------------
+    # STUDENT FEE
+    # --------------------------------------------------------
 
     student_fee = (
         db.query(StudentFee)
-        .filter(StudentFee.id == payment.student_fee_id)
+        .filter(
+            StudentFee.id
+            == payment.student_fee_id
+        )
         .first()
     )
 
     if not student_fee:
-        raise HTTPException(status_code=404, detail="Student fee not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Student fee not found",
+        )
+
+    # --------------------------------------------------------
+    # STUDENT
+    # --------------------------------------------------------
 
     student = (
         db.query(Student)
-        .filter(Student.id == payment.student_id)
+        .filter(
+            Student.id
+            == payment.student_id
+        )
         .first()
     )
 
     if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found",
+        )
+
+    # --------------------------------------------------------
+    # USER
+    # --------------------------------------------------------
 
     user = (
         db.query(User)
-        .filter(User.id == student.user_id)
+        .filter(
+            User.id
+            == student.user_id
+        )
         .first()
     )
 
     if not user:
-        raise HTTPException(status_code=404, detail="Student user not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Student user not found",
+        )
+
+    # --------------------------------------------------------
+    # GENERATE PDF
+    # --------------------------------------------------------
 
     pdf_buffer = generate_fee_receipt(
         payment=payment,
@@ -314,6 +505,10 @@ def download_fee_receipt(
         media_type="application/pdf",
         headers={
             "Content-Disposition":
-                f'attachment; filename="{payment.receipt_number}.pdf"'
+                (
+                    f'attachment; '
+                    f'filename="'
+                    f'{payment.receipt_number}.pdf"'
+                )
         },
     )

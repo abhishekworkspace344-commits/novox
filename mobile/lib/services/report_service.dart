@@ -97,6 +97,42 @@ class ReportService {
   }
 
   // ============================================================
+  // FEE STRUCTURES
+  // ============================================================
+
+  Future<List<dynamic>> getFeeStructures() async {
+    final response = await apiClient.dio.get(
+      ApiConstants.feeStructure,
+    );
+
+    final data = response.data;
+
+    if (data is! List) {
+      return [];
+    }
+
+    return List<dynamic>.from(data);
+  }
+
+  // ============================================================
+  // PENDING FEES
+  // ============================================================
+
+  Future<List<dynamic>> getPendingFees() async {
+    final response = await apiClient.dio.get(
+      ApiConstants.adminPendingFees,
+    );
+
+    final data = response.data;
+
+    if (data is! List) {
+      return [];
+    }
+
+    return List<dynamic>.from(data);
+  }
+
+  // ============================================================
   // SALARY REPORT
   // ============================================================
 
@@ -137,8 +173,7 @@ class ReportService {
         'end_date': ?endDate,
       },
       options: Options(
-        responseType:
-            ResponseType.bytes,
+        responseType: ResponseType.bytes,
       ),
     );
 
@@ -161,8 +196,7 @@ class ReportService {
         'end_date': ?endDate,
       },
       options: Options(
-        responseType:
-            ResponseType.bytes,
+        responseType: ResponseType.bytes,
       ),
     );
 
@@ -178,8 +212,7 @@ class ReportService {
         await apiClient.dio.get<List<int>>(
       ApiConstants.feePdfExport,
       options: Options(
-        responseType:
-            ResponseType.bytes,
+        responseType: ResponseType.bytes,
       ),
     );
 
@@ -202,8 +235,7 @@ class ReportService {
         'year': ?year,
       },
       options: Options(
-        responseType:
-            ResponseType.bytes,
+        responseType: ResponseType.bytes,
       ),
     );
 

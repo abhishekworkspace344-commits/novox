@@ -13,9 +13,11 @@ def create_test_users():
         # ADMIN
         # ============================================================
 
-        admin = db.query(User).filter(
-            User.email == "admin@novox.com"
-        ).first()
+        admin = (
+            db.query(User)
+            .filter(User.email == "admin@novox.com")
+            .first()
+        )
 
         if not admin:
             admin = User(
@@ -35,12 +37,14 @@ def create_test_users():
             print("Admin already exists")
 
         # ============================================================
-        # STAFF
+        # STAFF USER
         # ============================================================
 
-        staff_user = db.query(User).filter(
-            User.email == "staff@novox.com"
-        ).first()
+        staff_user = (
+            db.query(User)
+            .filter(User.email == "staff@novox.com")
+            .first()
+        )
 
         if not staff_user:
             staff_user = User(
@@ -55,26 +59,48 @@ def create_test_users():
             db.add(staff_user)
             db.flush()
 
-            staff = Staff(
-                user_id=staff_user.id,
-                employee_code="NOVOX-STF-001",
-                designation="Faculty",
-                department="Computer Science",
+            print("Staff user created")
+
+        else:
+            print("Staff user already exists")
+
+        # ============================================================
+        # STAFF PROFILE
+        # ============================================================
+
+        if staff_user:
+            existing_staff = (
+                db.query(Staff)
+                .filter(
+                    Staff.user_id == staff_user.id
+                )
+                .first()
             )
 
-            db.add(staff)
+            if not existing_staff:
+                staff = Staff(
+                    user_id=staff_user.id,
+                    employee_code="NOVOX-STF-001",
+                    designation="Faculty",
+                    department="Computer Science",
+                )
 
-            print("Staff created")
-        else:
-            print("Staff already exists")
+                db.add(staff)
+
+                print("Staff profile created")
+
+            else:
+                print("Staff profile already exists")
 
         # ============================================================
-        # STUDENT
+        # STUDENT USER
         # ============================================================
 
-        student_user = db.query(User).filter(
-            User.email == "student@novox.com"
-        ).first()
+        student_user = (
+            db.query(User)
+            .filter(User.email == "student@novox.com")
+            .first()
+        )
 
         if not student_user:
             student_user = User(
@@ -89,47 +115,85 @@ def create_test_users():
             db.add(student_user)
             db.flush()
 
-            student = Student(
-                user_id=student_user.id,
-                student_code="NOVOX-STU-001",
-                course="MCA",
-                batch="2025-2027",
+            print("Student user created")
+
+        else:
+            print("Student user already exists")
+
+        # ============================================================
+        # STUDENT PROFILE
+        # ============================================================
+
+        if student_user:
+            existing_student = (
+                db.query(Student)
+                .filter(
+                    Student.user_id == student_user.id
+                )
+                .first()
             )
 
-            db.add(student)
+            if not existing_student:
+                student = Student(
+                    user_id=student_user.id,
+                    student_code="NOVOX-STU-001",
+                    course="MCA",
+                    batch="2025-2027",
+                )
 
-            print("Student created")
-        else:
-            print("Student already exists")
+                db.add(student)
+
+                print("Student profile created")
+
+            else:
+                print("Student profile already exists")
+
+        # ============================================================
+        # COMMIT
+        # ============================================================
 
         db.commit()
 
-        print()
-        print("=" * 50)
-        print("NOVOX TEST ACCOUNTS")
-        print("=" * 50)
+        # ============================================================
+        # RESULT
+        # ============================================================
 
+        print()
+        print("=" * 60)
+        print("NOVOX TEST ACCOUNTS")
+        print("=" * 60)
+
+        print()
         print("ADMIN")
         print("Email    : admin@novox.com")
         print("Password : Admin@123")
-        print("ID       : NOVOX-ADM-001")
-        print()
 
+        print()
         print("STAFF")
         print("Email    : staff@novox.com")
         print("Password : Staff@123")
-        print("ID       : NOVOX-STF-001")
-        print()
+        print("Employee : NOVOX-STF-001")
 
+        print()
         print("STUDENT")
         print("Email    : student@novox.com")
         print("Password : Student@123")
-        print("ID       : NOVOX-STU-001")
-        print("=" * 50)
+        print("Student  : NOVOX-STU-001")
+
+        print()
+        print("=" * 60)
+        print("ALL TEST ACCOUNTS READY")
+        print("=" * 60)
 
     except Exception as e:
         db.rollback()
-        print("ERROR:", e)
+
+        print()
+        print("=" * 60)
+        print("ERROR CREATING TEST USERS")
+        print("=" * 60)
+        print(e)
+
         raise
 
     finally:

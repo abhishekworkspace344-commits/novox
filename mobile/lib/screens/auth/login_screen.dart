@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/api_constants.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_error.dart';
 import '../../core/theme/app_theme.dart';
@@ -15,12 +16,27 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
+  // =========================================================
+  // CONTROLLERS
+  // =========================================================
+
+  final TextEditingController emailController =
+      TextEditingController();
+
+  final TextEditingController passwordController =
+      TextEditingController();
+
+  // =========================================================
+  // STATE
+  // =========================================================
 
   bool loading = false;
   bool obscurePassword = true;
   String? selectedRole;
+
+  // =========================================================
+  // DISPOSE
+  // =========================================================
 
   @override
   void dispose() {
@@ -29,7 +45,17 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _fillDemoCredentials(String role, String email, String password) {
+  // =========================================================
+  // FILL DEMO CREDENTIALS
+  // =========================================================
+
+  void _fillDemoCredentials(
+    String role,
+    String email,
+    String password,
+  ) {
+    if (!mounted) return;
+
     setState(() {
       selectedRole = role;
       emailController.text = email;
@@ -37,68 +63,225 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // =========================================================
+  // LOGIN
+  // =========================================================
+
   Future<void> login() async {
     final email = emailController.text.trim();
     final password = passwordController.text;
 
+    // ---------------------------------------------------------
+    // VALIDATION
+    // ---------------------------------------------------------
+
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please enter both email and password"),
+          content: Text(
+            "Please enter both email and password",
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
+
       return;
     }
+
+    if (loading) {
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // START LOADING
+    // ---------------------------------------------------------
 
     setState(() {
       loading = true;
     });
 
     try {
+      // -------------------------------------------------------
+      // CREATE API CLIENT
+      // -------------------------------------------------------
+
       final apiClient = ApiClient();
+
+      // -------------------------------------------------------
+      // DEBUG INFORMATION
+      // -------------------------------------------------------
+
+      final baseUrl = apiClient.dio.options.baseUrl;
+      final loginEndpoint = ApiConstants.login;
+      final fullUrl = "$baseUrl$loginEndpoint";
+
+      debugPrint(
+        "==================================================",
+      );
+      debugPrint(
+        "NOVOX LOGIN START",
+      );
+      debugPrint(
+        "==================================================",
+      );
+      debugPrint(
+        "BASE URL: $baseUrl",
+      );
+      debugPrint(
+        "LOGIN ENDPOINT: $loginEndpoint",
+      );
+      debugPrint(
+        "FULL LOGIN URL: $fullUrl",
+      );
+      debugPrint(
+        "EMAIL: $email",
+      );
+      debugPrint(
+        "==================================================",
+      );
+
+      // -------------------------------------------------------
+      // AUTH SERVICE
+      // -------------------------------------------------------
+
       final authService = AuthService(apiClient);
 
-      final user = await authService.login(email, password);
+      // -------------------------------------------------------
+      // LOGIN REQUEST
+      // -------------------------------------------------------
 
-      if (!mounted) return;
+      final user = await authService.login(
+        email,
+        password,
+      );
 
-      if (user.role == "student") {
+      // -------------------------------------------------------
+      // LOGIN SUCCESS
+      // -------------------------------------------------------
+
+      debugPrint(
+        "==================================================",
+      );
+      debugPrint(
+        "NOVOX LOGIN SUCCESS",
+      );
+      debugPrint(
+        "==================================================",
+      );
+      debugPrint(
+        "USER ID: ${user.userId}",
+      );
+      debugPrint(
+        "USER NAME: ${user.name}",
+      );
+      debugPrint(
+        "USER ROLE: ${user.role}",
+      );
+      debugPrint(
+        "TOKEN TYPE: ${user.tokenType}",
+      );
+      debugPrint(
+        "==================================================",
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      // -------------------------------------------------------
+      // ROLE NAVIGATION
+      // -------------------------------------------------------
+
+      final role = user.role.toLowerCase().trim();
+
+      if (role == "student") {
         Navigator.pushReplacementNamed(
           context,
           "/student",
         );
-      } else if (user.role == "staff") {
+      } else if (role == "staff") {
         Navigator.pushReplacementNamed(
           context,
           "/staff",
         );
-      } else if (user.role == "admin") {
+      } else if (role == "admin") {
         Navigator.pushReplacementNamed(
           context,
           "/admin",
         );
       } else {
+        debugPrint(
+          "UNKNOWN USER ROLE: ${user.role}",
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Unrecognized user role: ${user.role}"),
+            content: Text(
+              "Unrecognized user role: ${user.role}",
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } catch (e) {
-      if (!mounted) return;
+    } catch (e, stackTrace) {
+      // -------------------------------------------------------
+      // LOGIN ERROR
+      // -------------------------------------------------------
+
+      debugPrint(
+        "==================================================",
+      );
+      debugPrint(
+        "NOVOX LOGIN ERROR",
+      );
+      debugPrint(
+        "==================================================",
+      );
+      debugPrint(
+        "ERROR TYPE: ${e.runtimeType}",
+      );
+      debugPrint(
+        "ERROR: $e",
+      );
+      debugPrint(
+        "STACK TRACE:",
+      );
+      debugPrint(
+        "$stackTrace",
+      );
+      debugPrint(
+        "==================================================",
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      String message;
+
+      try {
+        message = ApiError.message(e);
+      } catch (_) {
+        message = e.toString();
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Login failed: ${ApiError.message(e)}",
+            "Login failed: $message",
           ),
           backgroundColor: AppColors.danger,
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(
+            seconds: 5,
+          ),
         ),
       );
     } finally {
+      // -------------------------------------------------------
+      // STOP LOADING
+      // -------------------------------------------------------
+
       if (mounted) {
         setState(() {
           loading = false;
@@ -107,6 +290,79 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // =========================================================
+  // ROLE CHIP
+  // =========================================================
+
+  Widget _roleChip({
+    required String label,
+    required String role,
+    required String email,
+    required String pass,
+    required IconData icon,
+  }) {
+    final isSelected = selectedRole == role;
+
+    return InkWell(
+      onTap: () {
+        _fillDemoCredentials(
+          role,
+          email,
+          pass,
+        );
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          vertical: 8,
+          horizontal: 4,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primarySoft
+              : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.cardBorder,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
+            ),
+            const SizedBox(
+              height: 4,
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected
+                    ? FontWeight.w700
+                    : FontWeight.w600,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =========================================================
+  // BUILD
+  // =========================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,13 +370,21 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
+            ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: const BoxConstraints(
+                maxWidth: 440,
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo / Branding Header
+                  // =================================================
+                  // LOGO / BRANDING
+                  // =================================================
+
                   Container(
                     width: 76,
                     height: 76,
@@ -129,9 +393,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(22),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.28),
+                          color: AppColors.primary.withValues(
+                            alpha: 0.28,
+                          ),
                           blurRadius: 18,
-                          offset: const Offset(0, 8),
+                          offset: const Offset(
+                            0,
+                            8,
+                          ),
                         ),
                       ],
                     ),
@@ -142,7 +411,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(
+                    height: 18,
+                  ),
+
+                  // =================================================
+                  // NOVOX TITLE
+                  // =================================================
 
                   const Text(
                     "NOVOX",
@@ -154,7 +429,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 6),
+                  const SizedBox(
+                    height: 6,
+                  ),
 
                   const Text(
                     "Education Management",
@@ -166,9 +443,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(
+                    height: 32,
+                  ),
 
-                  // Login Card Container
+                  // =================================================
+                  // LOGIN CARD
+                  // =================================================
+
                   Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
@@ -182,13 +464,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         BoxShadow(
                           color: Color(0x0A0F172A),
                           blurRadius: 24,
-                          offset: Offset(0, 8),
+                          offset: Offset(
+                            0,
+                            8,
+                          ),
                         ),
                       ],
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
+                        // =================================================
+                        // WELCOME
+                        // =================================================
+
                         const Text(
                           "Welcome Back",
                           style: TextStyle(
@@ -197,7 +487,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 6),
+
+                        const SizedBox(
+                          height: 6,
+                        ),
+
                         const Text(
                           "Sign in to your institutional account",
                           style: TextStyle(
@@ -206,131 +500,228 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(
+                          height: 24,
+                        ),
 
-                        // Email Field
+                        // =================================================
+                        // EMAIL
+                        // =================================================
+
                         TextField(
                           controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
+                          keyboardType:
+                              TextInputType.emailAddress,
+                          textInputAction:
+                              TextInputAction.next,
+                          enabled: !loading,
+                          decoration:
+                              const InputDecoration(
                             labelText: "Email",
-                            hintText: "user@novox.com",
+                            hintText:
+                                "user@novox.com",
                             prefixIcon: Icon(
                               Icons.email_outlined,
-                              color: AppColors.primary,
+                              color:
+                                  AppColors.primary,
                               size: 20,
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 18),
+                        const SizedBox(
+                          height: 18,
+                        ),
 
-                        // Password Field
+                        // =================================================
+                        // PASSWORD
+                        // =================================================
+
                         TextField(
-                          controller: passwordController,
-                          obscureText: obscurePassword,
-                          decoration: InputDecoration(
+                          controller:
+                              passwordController,
+                          obscureText:
+                              obscurePassword,
+                          enabled: !loading,
+                          textInputAction:
+                              TextInputAction.done,
+                          onSubmitted: (_) {
+                            if (!loading) {
+                              login();
+                            }
+                          },
+                          decoration:
+                              InputDecoration(
                             labelText: "Password",
                             hintText: "••••••••",
-                            prefixIcon: const Icon(
-                              Icons.lock_outline_rounded,
-                              color: AppColors.primary,
+                            prefixIcon:
+                                const Icon(
+                              Icons
+                                  .lock_outline_rounded,
+                              color:
+                                  AppColors.primary,
                               size: 20,
                             ),
-                            suffixIcon: IconButton(
+                            suffixIcon:
+                                IconButton(
                               icon: Icon(
                                 obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: AppColors.textMuted,
+                                    ? Icons
+                                        .visibility_outlined
+                                    : Icons
+                                        .visibility_off_outlined,
+                                color:
+                                    AppColors.textMuted,
                                 size: 20,
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  obscurePassword = !obscurePassword;
-                                });
-                              },
+                              onPressed: loading
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        obscurePassword =
+                                            !obscurePassword;
+                                      });
+                                    },
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 26),
+                        const SizedBox(
+                          height: 26,
+                        ),
 
-                        // Login Action Button
+                        // =================================================
+                        // LOGIN BUTTON
+                        // =================================================
+
                         SizedBox(
                           width: double.infinity,
                           height: 52,
                           child: Container(
                             decoration: BoxDecoration(
-                              gradient: loading ? null : AppColors.heroGradient,
-                              borderRadius: BorderRadius.circular(14),
+                              gradient: loading
+                                  ? null
+                                  : AppColors
+                                      .heroGradient,
+                              borderRadius:
+                                  BorderRadius.circular(
+                                14,
+                              ),
                               boxShadow: loading
                                   ? []
                                   : [
                                       BoxShadow(
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.32),
+                                        color: AppColors
+                                            .primary
+                                            .withValues(
+                                          alpha: 0.32,
+                                        ),
                                         blurRadius: 14,
-                                        offset: const Offset(0, 5),
+                                        offset:
+                                            const Offset(
+                                          0,
+                                          5,
+                                        ),
                                       ),
                                     ],
                             ),
                             child: ElevatedButton(
-                              onPressed: loading ? null : login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: loading
-                                    ? Colors.grey.shade300
-                                    : Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                              onPressed:
+                                  loading
+                                      ? null
+                                      : login,
+                              style: ElevatedButton
+                                  .styleFrom(
+                                backgroundColor:
+                                    loading
+                                        ? Colors.grey
+                                            .shade300
+                                        : Colors
+                                            .transparent,
+                                shadowColor:
+                                    Colors.transparent,
+                                shape:
+                                    RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius
+                                          .circular(
+                                    14,
+                                  ),
                                 ),
                               ),
                               child: loading
                                   ? const SizedBox(
                                       width: 22,
                                       height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        color: AppColors.primary,
+                                      child:
+                                          CircularProgressIndicator(
+                                        strokeWidth:
+                                            2.5,
+                                        color: AppColors
+                                            .primary,
                                       ),
                                     )
                                   : const Text(
                                       "LOGIN",
-                                      style: TextStyle(
+                                      style:
+                                          TextStyle(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                        letterSpacing: 1.0,
+                                        fontWeight:
+                                            FontWeight
+                                                .w700,
+                                        color: Colors
+                                            .white,
+                                        letterSpacing:
+                                            1.0,
                                       ),
                                     ),
                             ),
                           ),
                         ),
 
-                        const SizedBox(height: 28),
+                        const SizedBox(
+                          height: 28,
+                        ),
 
-                        // Quick Test Accounts
+                        // =================================================
+                        // DEMO ACCOUNTS DIVIDER
+                        // =================================================
+
                         Row(
                           children: const [
-                            Expanded(child: Divider()),
+                            Expanded(
+                              child: Divider(),
+                            ),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10),
+                              padding:
+                                  EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
                               child: Text(
                                 "DEMO ACCOUNTS",
                                 style: TextStyle(
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textMuted,
+                                  fontWeight:
+                                      FontWeight.w700,
+                                  color:
+                                      AppColors.textMuted,
                                   letterSpacing: 0.8,
                                 ),
                               ),
                             ),
-                            Expanded(child: Divider()),
+                            Expanded(
+                              child: Divider(),
+                            ),
                           ],
                         ),
 
-                        const SizedBox(height: 14),
+                        const SizedBox(
+                          height: 14,
+                        ),
+
+                        // =================================================
+                        // DEMO ROLE BUTTONS
+                        // =================================================
 
                         Row(
                           children: [
@@ -338,29 +729,46 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: _roleChip(
                                 label: "Admin",
                                 role: "admin",
-                                email: "admin@novox.com",
-                                pass: "Admin@123",
-                                icon: Icons.admin_panel_settings_outlined,
+                                email:
+                                    "admin@novox.com",
+                                pass:
+                                    "Admin@123",
+                                icon: Icons
+                                    .admin_panel_settings_outlined,
                               ),
                             ),
-                            const SizedBox(width: 8),
+
+                            const SizedBox(
+                              width: 8,
+                            ),
+
                             Expanded(
                               child: _roleChip(
                                 label: "Staff",
                                 role: "staff",
-                                email: "staff@novox.com",
-                                pass: "Staff@123",
-                                icon: Icons.badge_outlined,
+                                email:
+                                    "staff@novox.com",
+                                pass:
+                                    "Staff@123",
+                                icon: Icons
+                                    .badge_outlined,
                               ),
                             ),
-                            const SizedBox(width: 8),
+
+                            const SizedBox(
+                              width: 8,
+                            ),
+
                             Expanded(
                               child: _roleChip(
                                 label: "Student",
                                 role: "student",
-                                email: "student@novox.com",
-                                pass: "Student@123",
-                                icon: Icons.school_outlined,
+                                email:
+                                    "student@novox.com",
+                                pass:
+                                    "Student@123",
+                                icon: Icons
+                                    .school_outlined,
                               ),
                             ),
                           ],
@@ -369,11 +777,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(
+                    height: 28,
+                  ),
 
-                  // Security Badge
+                  // =================================================
+                  // SECURITY BADGE
+                  // =================================================
+
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Icon(
@@ -381,15 +795,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         size: 14,
                         color: AppColors.textMuted,
                       ),
-                      SizedBox(width: 6),
+                      SizedBox(
+                        width: 6,
+                      ),
                       Flexible(
                         child: Text(
                           "Enterprise Edition • 256-Bit SSL",
-                          overflow: TextOverflow.ellipsis,
+                          overflow:
+                              TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textMuted,
-                            fontWeight: FontWeight.w500,
+                            color:
+                                AppColors.textMuted,
+                            fontWeight:
+                                FontWeight.w500,
                           ),
                         ),
                       ),
@@ -399,50 +818,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _roleChip({
-    required String label,
-    required String role,
-    required String email,
-    required String pass,
-    required IconData icon,
-  }) {
-    final isSelected = selectedRole == role;
-
-    return InkWell(
-      onTap: () => _fillDemoCredentials(role, email, pass),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primarySoft : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.cardBorder,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              ),
-            ),
-          ],
         ),
       ),
     );

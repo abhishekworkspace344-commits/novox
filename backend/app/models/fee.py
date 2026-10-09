@@ -87,4 +87,4 @@ class StudentFee(Base):
         DateTime,
         default=datetime.utcnow,
         nullable=False,
-    )
+    )
