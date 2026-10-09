@@ -665,7 +665,7 @@ class _AdminSalaryScreenState extends State<AdminSalaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("Salary Management"),
         actions: [

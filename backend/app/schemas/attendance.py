@@ -12,6 +12,7 @@ class AttendanceHistoryItem(BaseModel):
     arrival_status: str
     total_break_minutes: int
     total_work_minutes: int | None
+    active_break: bool = False
 
 
 class AttendanceHistoryResponse(BaseModel):

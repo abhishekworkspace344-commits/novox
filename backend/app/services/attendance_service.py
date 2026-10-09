@@ -526,10 +526,42 @@ def get_attendance_history(
             ) == month
         )
 
-    return (
+    records = (
         query
         .order_by(
             Attendance.attendance_date.desc()
         )
         .all()
     )
+
+    if not records:
+        return []
+
+    active_attendance_ids = {
+        attendance_id
+        for (attendance_id,) in (
+            db.query(AttendanceBreak.attendance_id)
+            .filter(
+                AttendanceBreak.attendance_id.in_(
+                    [record.id for record in records]
+                ),
+                AttendanceBreak.end_time.is_(None),
+            )
+            .all()
+        )
+    }
+
+    return [
+        {
+            "id": record.id,
+            "attendance_date": record.attendance_date,
+            "check_in": record.check_in,
+            "checkout": record.checkout,
+            "attendance_status": record.attendance_status,
+            "arrival_status": record.arrival_status,
+            "total_break_minutes": record.total_break_minutes,
+            "total_work_minutes": record.total_work_minutes,
+            "active_break": record.id in active_attendance_ids,
+        }
+        for record in records
+    ]

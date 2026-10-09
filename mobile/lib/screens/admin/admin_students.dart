@@ -95,6 +95,7 @@ class _AdminStudentsState extends State<AdminStudents> {
     final courseController = TextEditingController();
     final batchController = TextEditingController();
     final phoneController = TextEditingController();
+    final totalFeesController = TextEditingController();
 
     bool saving = false;
 
@@ -150,6 +151,14 @@ class _AdminStudentsState extends State<AdminStudents> {
                         icon: Icons.phone_rounded,
                         keyboardType: TextInputType.phone,
                       ),
+                      studentField(
+                        controller: totalFeesController,
+                        label: "Total Fees (₹, optional)",
+                        icon: Icons.currency_rupee_rounded,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -172,6 +181,7 @@ class _AdminStudentsState extends State<AdminStudents> {
                             course: courseController.text.trim(),
                             batch: batchController.text.trim(),
                             phone: phoneController.text.trim(),
+                            totalFees: totalFeesController.text.trim(),
                             setSaving: (v) => setDialogState(() => saving = v),
                           );
                         },
@@ -200,6 +210,7 @@ class _AdminStudentsState extends State<AdminStudents> {
     courseController.dispose();
     batchController.dispose();
     phoneController.dispose();
+    totalFeesController.dispose();
   }
 
   Future<void> handleCreateStudent({
@@ -211,6 +222,7 @@ class _AdminStudentsState extends State<AdminStudents> {
     required String course,
     required String batch,
     required String phone,
+    required String totalFees,
     required void Function(bool) setSaving,
   }) async {
     if (name.isEmpty) {
@@ -234,6 +246,13 @@ class _AdminStudentsState extends State<AdminStudents> {
       return;
     }
 
+    final parsedTotalFees = totalFees.isEmpty ? null : double.tryParse(totalFees);
+    if (totalFees.isNotEmpty &&
+        (parsedTotalFees == null || parsedTotalFees < 0)) {
+      showMessage("Please enter a valid total fee amount");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -245,6 +264,7 @@ class _AdminStudentsState extends State<AdminStudents> {
         studentCode: studentCode,
         course: course,
         batch: batch,
+        totalFees: parsedTotalFees,
       );
 
       if (!mounted) return;
@@ -388,6 +408,17 @@ class _AdminStudentsState extends State<AdminStudents> {
                       ),
                     ),
                   ],
+                  if (student.totalFees > 0) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      "Total fees: ₹${student.totalFees.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 6),
                   if (student.email.isNotEmpty)
                     Row(
@@ -517,7 +548,7 @@ class _AdminStudentsState extends State<AdminStudents> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("Student Management"),
         actions: [

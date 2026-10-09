@@ -68,11 +68,10 @@ class AttendanceService {
       // The API's check-in response is a summary, not a full history record.
       return AttendanceModel(
         id: data["attendance_id"] ?? data["id"] ?? 0,
-        attendanceDate:
-            (data["check_in"] ?? DateTime.now().toIso8601String())
-                .toString()
-                .split("T")
-                .first,
+        attendanceDate: (data["check_in"] ?? DateTime.now().toIso8601String())
+            .toString()
+            .split("T")
+            .first,
         checkIn: data["check_in"]?.toString(),
         attendanceStatus: data["attendance_status"] ?? "PRESENT",
         arrivalStatus: data["arrival_status"] ?? "ON_TIME",
@@ -80,6 +79,7 @@ class AttendanceService {
             ? null
             : double.tryParse(data["distance_meters"].toString()),
         totalBreakMinutes: 0,
+        activeBreak: false,
       );
     }
 

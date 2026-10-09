@@ -15,16 +15,21 @@ from app.models.fee import FeeStructure, StudentFee
 from app.schemas.fee import (
     FeeStructureCreate,
     FeeStructureResponse,
+    FeeStructureUpdate,
     StudentFeeCreate,
     StudentFeeResponse,
+    StudentFeeUpdate,
+    StudentFeeAdminResponse,
     PaymentCreate,
     PaymentResponse,
 )
 
 from app.services.fee_service import (
     create_fee_structure,
+    update_fee_structure,
     assign_student_fee,
     create_payment,
+    update_student_fee,
 )
 
 from app.services.pdf_service import generate_fee_receipt
@@ -84,6 +89,33 @@ def create_structure(
 
 
 # ============================================================
+# ADMIN — EDIT FEE STRUCTURE
+# ============================================================
+
+@router.put(
+    "/structure/{structure_id}",
+    response_model=FeeStructureResponse,
+    dependencies=[Depends(require_role("admin"))],
+)
+def edit_structure(
+    structure_id: int,
+    data: FeeStructureUpdate,
+    db: Session = Depends(get_db),
+):
+    try:
+        return update_fee_structure(
+            db=db,
+            structure_id=structure_id,
+            course=data.course,
+            fee_type=data.fee_type,
+            total_amount=data.total_amount,
+            description=data.description,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+
+
+# ============================================================
 # ADMIN — ASSIGN FEE TO STUDENT
 # ============================================================
 
@@ -104,6 +136,66 @@ def create_student_fee(
         fee_structure_id=data.fee_structure_id,
         total_amount=data.total_amount,
     )
+
+
+# ============================================================
+# ADMIN — EDIT STUDENT FEE
+# ============================================================
+
+@router.put(
+    "/student/{student_fee_id}",
+    response_model=StudentFeeResponse,
+    dependencies=[Depends(require_role("admin"))],
+)
+def edit_student_fee(
+    student_fee_id: int,
+    data: StudentFeeUpdate,
+    db: Session = Depends(get_db),
+):
+    student_fee = db.query(StudentFee).filter(
+        StudentFee.id == student_fee_id
+    ).first()
+    if not student_fee:
+        raise HTTPException(status_code=404, detail="Student fee record not found")
+    try:
+        return update_student_fee(db, student_fee, data.total_amount)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+
+# ============================================================
+# ADMIN — ALL STUDENT FEE RECORDS
+# ============================================================
+
+@router.get(
+    "/admin/all",
+    response_model=list[StudentFeeAdminResponse],
+    dependencies=[Depends(require_role("admin"))],
+)
+def all_student_fees(db: Session = Depends(get_db)):
+    rows = (
+        db.query(StudentFee, Student, User)
+        .join(Student, Student.id == StudentFee.student_id)
+        .join(User, User.id == Student.user_id)
+        .order_by(StudentFee.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": fee.id,
+            "student_id": fee.student_id,
+            "fee_structure_id": fee.fee_structure_id,
+            "total_amount": fee.total_amount,
+            "paid_amount": fee.paid_amount,
+            "pending_amount": fee.pending_amount,
+            "status": fee.status,
+            "created_at": fee.created_at,
+            "student_name": user.name,
+            "student_code": student.student_code,
+            "course": student.course,
+        }
+        for fee, student, user in rows
+    ]
 
 
 # ============================================================

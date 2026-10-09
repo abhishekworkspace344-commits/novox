@@ -8,6 +8,7 @@ class AttendanceModel {
   final double? checkInDistance;
   final int totalBreakMinutes;
   final int? totalWorkMinutes;
+  final bool activeBreak;
 
   AttendanceModel({
     required this.id,
@@ -19,32 +20,23 @@ class AttendanceModel {
     this.checkInDistance,
     required this.totalBreakMinutes,
     this.totalWorkMinutes,
+    this.activeBreak = false,
   });
 
-  factory AttendanceModel.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
       id: json["id"],
-      attendanceDate:
-          json["attendance_date"],
+      attendanceDate: json["attendance_date"],
       checkIn: json["check_in"],
       checkout: json["checkout"],
-      attendanceStatus:
-          json["attendance_status"],
-      arrivalStatus:
-          json["arrival_status"],
-      checkInDistance:
-          json["check_in_distance"] != null
-              ? double.parse(
-                  json["check_in_distance"]
-                      .toString(),
-                )
-              : null,
-      totalBreakMinutes:
-          json["total_break_minutes"] ?? 0,
-      totalWorkMinutes:
-          json["total_work_minutes"],
+      attendanceStatus: json["attendance_status"],
+      arrivalStatus: json["arrival_status"],
+      checkInDistance: json["check_in_distance"] != null
+          ? double.parse(json["check_in_distance"].toString())
+          : null,
+      totalBreakMinutes: json["total_break_minutes"] ?? 0,
+      totalWorkMinutes: json["total_work_minutes"],
+      activeBreak: json["active_break"] == true,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/network/api_client.dart';
 import '../../models/admin_fee_model.dart';
+import '../../models/student_admin_model.dart';
 import '../../services/admin_service.dart';
 
 class AdminFeesScreen extends StatefulWidget {
@@ -23,11 +24,13 @@ class _AdminFeesScreenState
   // ============================================================
 
   List<AdminFeeModel> fees = [];
+  List<StudentAdminModel> students = [];
   List<dynamic> feeStructures = [];
 
   bool loading = true;
   bool paymentLoading = false;
   bool structureLoading = false;
+  bool feeUpdateLoading = false;
 
   // ============================================================
   // INIT
@@ -56,22 +59,24 @@ class _AdminFeesScreenState
     });
 
     try {
-      final results = await Future.wait([
-        adminService.getPendingFees(),
+      final results = await Future.wait<Object>([
+        adminService.getAllStudentFees(),
         adminService.getFeeStructures(),
+        adminService.getStudents(),
       ]);
 
       if (!mounted) return;
 
-      final pendingData =
-          results[0] as List<AdminFeeModel>;
+      final feeData = results[0] as List<AdminFeeModel>;
 
       final structureData =
           results[1] as List<dynamic>;
+      final studentData = results[2] as List<StudentAdminModel>;
 
       setState(() {
-        fees = pendingData;
+        fees = feeData;
         feeStructures = structureData;
+        students = studentData;
         loading = false;
       });
     } catch (e) {
@@ -118,44 +123,130 @@ class _AdminFeesScreenState
     );
   }
 
+  Map<int, List<AdminFeeModel>> get feesByStudent {
+    final grouped = <int, List<AdminFeeModel>>{};
+    for (final fee in fees) {
+      grouped.putIfAbsent(fee.studentId, () => []).add(fee);
+    }
+    return grouped;
+  }
+
   int get paidStudents {
-    return fees.where(
-      (fee) => fee.pendingAmount <= 0,
-    ).length;
+    return feesByStudent.values.where((records) =>
+        records.fold<double>(0, (sum, fee) => sum + fee.pendingAmount) <= 0 &&
+        records.fold<double>(0, (sum, fee) => sum + fee.totalAmount) > 0).length;
   }
 
   int get partialStudents {
-    return fees.where(
-      (fee) =>
-          fee.paidAmount > 0 &&
-          fee.pendingAmount > 0,
-    ).length;
+    return feesByStudent.values.where((records) {
+      final paid = records.fold<double>(0, (sum, fee) => sum + fee.paidAmount);
+      final pending = records.fold<double>(0, (sum, fee) => sum + fee.pendingAmount);
+      return paid > 0 && pending > 0;
+    }).length;
   }
 
   int get pendingStudents {
-    return fees.where(
-      (fee) =>
-          fee.paidAmount <= 0 &&
-          fee.pendingAmount > 0,
-    ).length;
+    return feesByStudent.values.where((records) {
+      final paid = records.fold<double>(0, (sum, fee) => sum + fee.paidAmount);
+      final pending = records.fold<double>(0, (sum, fee) => sum + fee.pendingAmount);
+      return paid <= 0 && pending > 0;
+    }).length;
+  }
+
+  List<StudentAdminModel> get studentsWithoutFees {
+    final assignedStudentIds = fees.map((fee) => fee.studentId).toSet();
+    return students.where((student) => !assignedStudentIds.contains(student.id)).toList();
+  }
+
+  void showAddStudentFeeDialog(StudentAdminModel student) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Add total fees for ${student.name}'),
+          content: inputField(
+            controller,
+            'Total Fees (₹)',
+            Icons.currency_rupee_rounded,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          actions: [
+            TextButton(
+              onPressed: feeUpdateLoading ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: feeUpdateLoading
+                  ? null
+                  : () async {
+                      final amount = double.tryParse(controller.text.trim());
+                      if (amount == null || amount <= 0) {
+                        showMessage('Please enter a valid total fee');
+                        return;
+                      }
+                      setDialogState(() => feeUpdateLoading = true);
+                      try {
+                        await adminService.assignStudentFee({
+                          'student_id': student.id,
+                          'fee_structure_id': null,
+                          'total_amount': amount,
+                        });
+                        if (!dialogContext.mounted) {
+                          if (mounted) {
+                            setState(() => feeUpdateLoading = false);
+                          }
+                          return;
+                        }
+                        setDialogState(() => feeUpdateLoading = false);
+                        Navigator.pop(dialogContext);
+                        await loadFees();
+                        showMessage('Student fees added');
+                      } catch (error) {
+                        if (dialogContext.mounted) {
+                          setDialogState(() => feeUpdateLoading = false);
+                        } else if (mounted) {
+                          setState(() => feeUpdateLoading = false);
+                        }
+                        showMessage('Unable to add student fees: $error');
+                      }
+                    },
+              child: feeUpdateLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Add Fees'),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(controller.dispose);
   }
 
   // ============================================================
   // CREATE FEE STRUCTURE
   // ============================================================
 
-  void showFeeStructureDialog() {
-    final courseController =
-        TextEditingController();
+  void showFeeStructureDialog({Map<String, dynamic>? structure}) {
+    final structureId = structure == null ? null : int.tryParse('${structure['id']}');
+    final editing = structureId != null;
+    final courseController = TextEditingController(
+      text: structure?['course']?.toString() ?? '',
+    );
 
-    final feeTypeController =
-        TextEditingController();
+    final feeTypeController = TextEditingController(
+      text: structure?['fee_type']?.toString() ?? '',
+    );
 
-    final amountController =
-        TextEditingController();
+    final amountController = TextEditingController(
+      text: structure?['total_amount']?.toString() ?? '',
+    );
 
-    final descriptionController =
-        TextEditingController();
+    final descriptionController = TextEditingController(
+      text: structure?['description']?.toString() ?? '',
+    );
 
     showDialog(
       context: context,
@@ -168,9 +259,7 @@ class _AdminFeesScreenState
             setDialogState,
           ) {
             return AlertDialog(
-              title: const Text(
-                "Create Fee Structure",
-              ),
+              title: Text(editing ? "Edit Fee Structure" : "Create Fee Structure"),
 
               content: SizedBox(
                 width: 450,
@@ -231,8 +320,9 @@ class _AdminFeesScreenState
                       structureLoading
                           ? null
                           : () async {
-                              await createFeeStructure(
+                              await saveFeeStructure(
                                 dialogContext,
+                                structureId,
                                 courseController.text,
                                 feeTypeController.text,
                                 amountController.text,
@@ -250,9 +340,7 @@ class _AdminFeesScreenState
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          "Create Structure",
-                        ),
+                      : Text(editing ? "Save Changes" : "Create Structure"),
                 ),
               ],
             );
@@ -266,8 +354,9 @@ class _AdminFeesScreenState
   // CREATE FEE STRUCTURE API
   // ============================================================
 
-  Future<void> createFeeStructure(
+  Future<void> saveFeeStructure(
     BuildContext dialogContext,
+    int? structureId,
     String course,
     String feeType,
     String amountText,
@@ -308,21 +397,25 @@ class _AdminFeesScreenState
     });
 
     try {
-      await adminService.createFeeStructure(
-        {
-          "course": course.trim(),
-          "fee_type": feeType.trim(),
-          "total_amount": amount,
-          "description":
-              description.trim().isEmpty
-                  ? null
-                  : description.trim(),
-        },
-      );
+      final data = {
+        "course": course.trim(),
+        "fee_type": feeType.trim(),
+        "total_amount": amount,
+        "description": description.trim().isEmpty
+            ? null
+            : description.trim(),
+      };
+      if (structureId == null) {
+        await adminService.createFeeStructure(data);
+      } else {
+        await adminService.updateFeeStructure(structureId, data);
+      }
 
       if (!dialogContext.mounted) {
         return;
       }
+
+      setDialogState(() => structureLoading = false);
 
       Navigator.pop(
         dialogContext,
@@ -332,9 +425,11 @@ class _AdminFeesScreenState
 
       ScaffoldMessenger.of(context)
           .showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            "Fee structure created successfully",
+            structureId == null
+                ? "Fee structure created successfully"
+                : "Fee structure updated successfully",
           ),
           backgroundColor:
               Colors.green,
@@ -345,9 +440,11 @@ class _AdminFeesScreenState
 
       await loadFees();
     } catch (e) {
-      setDialogState(() {
-        structureLoading = false;
-      });
+      if (dialogContext.mounted) {
+        setDialogState(() => structureLoading = false);
+      } else if (mounted) {
+        setState(() => structureLoading = false);
+      }
 
       if (!mounted) return;
 
@@ -355,7 +452,7 @@ class _AdminFeesScreenState
           .showSnackBar(
         SnackBar(
           content: Text(
-            "Failed to create fee structure: $e",
+            "Failed to ${structureId == null ? 'create' : 'update'} fee structure: $e",
           ),
           backgroundColor:
               Colors.red,
@@ -364,6 +461,84 @@ class _AdminFeesScreenState
         ),
       );
     }
+  }
+
+  void showEditStudentFeeDialog(AdminFeeModel fee) {
+    final controller = TextEditingController(
+      text: fee.totalAmount.toStringAsFixed(2),
+    );
+    showDialog(
+      context: context,
+      barrierDismissible: !feeUpdateLoading,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Edit fees for ${fee.studentName.isEmpty ? 'Student #${fee.studentId}' : fee.studentName}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              paymentInfo('Already paid', fee.paidAmount),
+              const SizedBox(height: 12),
+              inputField(
+                controller,
+                'Total Fees (₹)',
+                Icons.currency_rupee_rounded,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+              const Text('New total must be at least the amount already paid.'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: feeUpdateLoading ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: feeUpdateLoading
+                  ? null
+                  : () async {
+                      final newTotal = double.tryParse(controller.text.trim());
+                      if (newTotal == null || newTotal <= 0) {
+                        showMessage('Please enter a valid total fee');
+                        return;
+                      }
+                      if (newTotal < fee.paidAmount) {
+                        showMessage('Total fees cannot be less than the amount already paid');
+                        return;
+                      }
+                      setDialogState(() => feeUpdateLoading = true);
+                      try {
+                        await adminService.updateStudentFee(fee.id, newTotal);
+                        if (!dialogContext.mounted) {
+                          if (mounted) {
+                            setState(() => feeUpdateLoading = false);
+                          }
+                          return;
+                        }
+                        setDialogState(() => feeUpdateLoading = false);
+                        Navigator.pop(dialogContext);
+                        await loadFees();
+                        showMessage('Student fees updated');
+                      } catch (error) {
+                        if (dialogContext.mounted) {
+                          setDialogState(() => feeUpdateLoading = false);
+                        } else if (mounted) {
+                          setState(() => feeUpdateLoading = false);
+                        }
+                        showMessage('Unable to update student fees: $error');
+                      }
+                    },
+              child: feeUpdateLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(controller.dispose);
   }
 
   // ============================================================
@@ -414,10 +589,7 @@ class _AdminFeesScreenState
                         ),
                         decoration:
                             BoxDecoration(
-                          color: Colors.blue
-                              .withOpacity(
-                            0.08,
-                          ),
+                          color: Colors.blue.withValues(alpha: 0.08),
                           borderRadius:
                               BorderRadius.circular(
                             12,
@@ -634,6 +806,8 @@ class _AdminFeesScreenState
         return;
       }
 
+      setDialogState(() => paymentLoading = false);
+
       Navigator.pop(
         dialogContext,
       );
@@ -655,9 +829,11 @@ class _AdminFeesScreenState
 
       await loadFees();
     } catch (e) {
-      setDialogState(() {
-        paymentLoading = false;
-      });
+      if (dialogContext.mounted) {
+        setDialogState(() => paymentLoading = false);
+      } else if (mounted) {
+        setState(() => paymentLoading = false);
+      }
 
       if (!mounted) return;
 
@@ -704,6 +880,7 @@ class _AdminFeesScreenState
     final description =
         data["description"]?.toString() ??
             "";
+    final structureId = int.tryParse(data["id"].toString());
 
     return Card(
       margin:
@@ -730,10 +907,7 @@ class _AdminFeesScreenState
               height: 46,
               decoration:
                   BoxDecoration(
-                color: Colors.blue
-                    .withOpacity(
-                  0.10,
-                ),
+                color: Colors.blue.withValues(alpha: 0.10),
                 borderRadius:
                     BorderRadius.circular(
                   12,
@@ -816,6 +990,14 @@ class _AdminFeesScreenState
                 fontSize: 15,
               ),
             ),
+            if (structureId != null)
+              IconButton(
+                tooltip: "Edit fee structure",
+                onPressed: structureLoading
+                    ? null
+                    : () => showFeeStructureDialog(structure: data),
+                icon: const Icon(Icons.edit_outlined),
+              ),
           ],
         ),
       ),
@@ -877,10 +1059,7 @@ class _AdminFeesScreenState
               children: [
                 CircleAvatar(
                   backgroundColor:
-                      Colors.blue
-                          .withOpacity(
-                    0.10,
-                  ),
+                      Colors.blue.withValues(alpha: 0.10),
                   child:
                       const Icon(
                     Icons.person,
@@ -900,7 +1079,9 @@ class _AdminFeesScreenState
                             .start,
                     children: [
                       Text(
-                        "Student #${fee.studentId}",
+                        fee.studentName.isNotEmpty
+                            ? fee.studentName
+                            : "Student #${fee.studentId}",
                         style:
                             const TextStyle(
                           fontSize: 16,
@@ -915,7 +1096,11 @@ class _AdminFeesScreenState
                       ),
 
                       Text(
-                        "Fee ID: ${fee.id}",
+                        [
+                          if (fee.studentCode.isNotEmpty) fee.studentCode,
+                          if (fee.course.isNotEmpty) fee.course,
+                          "Fee ID: ${fee.id}",
+                        ].join(' • '),
                         style:
                             const TextStyle(
                           color:
@@ -936,10 +1121,7 @@ class _AdminFeesScreenState
                   ),
                   decoration:
                       BoxDecoration(
-                    color: statusColor
-                        .withOpacity(
-                      0.10,
-                    ),
+                    color: statusColor.withValues(alpha: 0.10),
                     borderRadius:
                         BorderRadius
                             .circular(
@@ -958,6 +1140,13 @@ class _AdminFeesScreenState
                       fontSize: 10,
                     ),
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Edit student fees',
+                  onPressed: feeUpdateLoading
+                      ? null
+                      : () => showEditStudentFeeDialog(fee),
+                  icon: const Icon(Icons.edit_outlined),
                 ),
               ],
             ),
@@ -978,7 +1167,7 @@ class _AdminFeesScreenState
 
                 Expanded(
                   child: amountColumn(
-                    "Amount Paid",
+                    "Paid Fees",
                     fee.paidAmount,
                     Colors.green,
                   ),
@@ -986,7 +1175,7 @@ class _AdminFeesScreenState
 
                 Expanded(
                   child: amountColumn(
-                    "Pending",
+                    "Balance Fees",
                     fee.pendingAmount,
                     Colors.red,
                   ),
@@ -1036,6 +1225,22 @@ class _AdminFeesScreenState
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget studentWithoutFeeCard(StudentAdminModel student) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        leading: const CircleAvatar(child: Icon(Icons.person_outline_rounded)),
+        title: Text(student.name.isEmpty ? student.studentCode : student.name),
+        subtitle: Text('${student.studentCode} • ${student.course}'),
+        trailing: TextButton.icon(
+          onPressed: feeUpdateLoading ? null : () => showAddStudentFeeDialog(student),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add fees'),
         ),
       ),
     );
@@ -1200,10 +1405,7 @@ class _AdminFeesScreenState
               height: 40,
               decoration:
                   BoxDecoration(
-                color: color
-                    .withOpacity(
-                  0.10,
-                ),
+                color: color.withValues(alpha: 0.10),
                 borderRadius:
                     BorderRadius
                         .circular(
@@ -1778,13 +1980,8 @@ class _AdminFeesScreenState
                     )
                   else
                     ...feeStructures
-                        .where(
-                          (item) =>
-                              item is Map,
-                        )
-                        .map(
-                          feeStructureCard,
-                        ),
+                        .whereType<Map>()
+                        .map(feeStructureCard),
 
                   // ==================================================
                   // STUDENT COLLECTION
@@ -1795,6 +1992,14 @@ class _AdminFeesScreenState
                     subtitle:
                         "Total fee, amount paid and pending amount",
                   ),
+
+                  if (studentsWithoutFees.isNotEmpty) ...[
+                    sectionTitle(
+                      'Students Without Fee Records',
+                      subtitle: 'Add a total fee to include them in collections',
+                    ),
+                    ...studentsWithoutFees.map(studentWithoutFeeCard),
+                  ],
 
                   if (fees.isEmpty)
                     emptyBox(

@@ -258,7 +258,7 @@ class _AdminAttendanceState extends State<AdminAttendance> {
         .length;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("Today's Attendance"),
         actions: [

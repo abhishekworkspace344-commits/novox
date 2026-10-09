@@ -1,5 +1,5 @@
 from datetime import date
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class StudentCreate(BaseModel):
@@ -15,6 +15,7 @@ class StudentCreate(BaseModel):
 
     guardian_name: str | None = None
     guardian_phone: str | None = None
+    total_fees: float | None = Field(default=None, ge=0)
 
 
 class StudentUpdate(BaseModel):
@@ -29,9 +30,14 @@ class StudentUpdate(BaseModel):
 class StudentAdminResponse(BaseModel):
     id: int
     user_id: int
+    name: str
+    email: EmailStr
+    phone: str | None
+    is_active: bool
     student_code: str
     course: str
     batch: str | None
     joining_date: date | None
     guardian_name: str | None
     guardian_phone: str | None
+    total_fees: float = 0

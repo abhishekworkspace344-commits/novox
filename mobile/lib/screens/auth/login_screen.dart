@@ -366,8 +366,17 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
+      backgroundColor: const Color(0xFF020B1D),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/novox_background.png',
+            fit: BoxFit.cover,
+          ),
+          // Keep the form legible while leaving the supplied artwork visible.
+          Container(color: const Color(0x33020B1D)),
+          SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
@@ -819,6 +828,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+          ),
+        ],
       ),
     );
   }

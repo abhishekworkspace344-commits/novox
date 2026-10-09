@@ -10,6 +10,10 @@ class FeeStructureCreate(BaseModel):
     description: str | None = None
 
 
+class FeeStructureUpdate(FeeStructureCreate):
+    pass
+
+
 class FeeStructureResponse(BaseModel):
     id: int
     course: str
@@ -27,6 +31,10 @@ class StudentFeeCreate(BaseModel):
     total_amount: float = Field(gt=0)
 
 
+class StudentFeeUpdate(BaseModel):
+    total_amount: float = Field(gt=0)
+
+
 class StudentFeeResponse(BaseModel):
     id: int
     student_id: int
@@ -39,6 +47,12 @@ class StudentFeeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class StudentFeeAdminResponse(StudentFeeResponse):
+    student_name: str
+    student_code: str
+    course: str
 
 
 class PaymentCreate(BaseModel):

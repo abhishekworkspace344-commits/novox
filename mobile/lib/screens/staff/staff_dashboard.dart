@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_error.dart';
 import '../../core/storage/secure_storage.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/attendance_model.dart';
@@ -14,9 +16,7 @@ import 'staff_profile.dart';
 import 'staff_salary.dart';
 
 class StaffDashboard extends StatefulWidget {
-  const StaffDashboard({
-    super.key,
-  });
+  const StaffDashboard({super.key});
 
   @override
   State<StaffDashboard> createState() => _StaffDashboardState();
@@ -30,6 +30,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
   AttendanceModel? todayAttendance;
 
   bool loading = true;
+  bool actionLoading = false;
 
   @override
   void initState() {
@@ -69,11 +70,99 @@ class _StaffDashboardState extends State<StaffDashboard> {
   void showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  Future<Position?> getCurrentLocation() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        showMessage("Please enable GPS/location services on your device.");
+        return null;
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        showMessage("Location permission is required for campus attendance.");
+        return null;
+      }
+      return Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+    } catch (e) {
+      showMessage("Unable to get current location: $e");
+      return null;
+    }
+  }
+
+  Future<void> runAttendanceAction(
+    String action,
+    Future<void> Function() callback,
+  ) async {
+    if (actionLoading) return;
+    setState(() => actionLoading = true);
+    try {
+      await callback();
+      if (!mounted) return;
+      showMessage("$action recorded successfully.");
+      await loadDashboard();
+    } catch (e) {
+      if (!mounted) return;
+      showMessage("$action failed: ${ApiError.message(e)}");
+    } finally {
+      if (mounted) setState(() => actionLoading = false);
+    }
+  }
+
+  Future<void> checkIn() => runAttendanceAction("Check-in", () async {
+    final position = await getCurrentLocation();
+    if (position == null) throw Exception("Location is required to check in.");
+    await attendanceService.checkIn(
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+  });
+
+  Future<void> startBreak() =>
+      runAttendanceAction("Break started", attendanceService.startBreak);
+
+  Future<void> endBreak() =>
+      runAttendanceAction("Break ended", attendanceService.endBreak);
+
+  Future<void> checkout() async {
+    if (actionLoading) return;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Checkout Confirmation"),
+        content: const Text("Are you sure you want to checkout for today?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Checkout"),
+          ),
+        ],
       ),
     );
+    if (confirm != true) return;
+    await runAttendanceAction("Checkout", () async {
+      final position = await getCurrentLocation();
+      if (position == null)
+        throw Exception("Location is required to checkout.");
+      await attendanceService.checkout(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+    });
   }
 
   Future<void> handleLogout() async {
@@ -81,7 +170,9 @@ class _StaffDashboardState extends State<StaffDashboard> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Confirm Logout"),
-        content: const Text("Are you sure you want to sign out of NOVOX Staff?"),
+        content: const Text(
+          "Are you sure you want to sign out of NOVOX Staff?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -106,27 +197,21 @@ class _StaffDashboardState extends State<StaffDashboard> {
   void openAttendance() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const StaffAttendanceScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const StaffAttendanceScreen()),
     );
   }
 
   void openSalary() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const StaffSalaryScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const StaffSalaryScreen()),
     );
   }
 
   void openProfile() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const StaffProfileScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const StaffProfileScreen()),
     );
   }
 
@@ -174,7 +259,10 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.20),
                         borderRadius: BorderRadius.circular(6),
@@ -205,7 +293,9 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  department.isNotEmpty ? "$designation • $department" : designation,
+                  department.isNotEmpty
+                      ? "$designation • $department"
+                      : designation,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -224,6 +314,9 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
   Widget buildTodayAttendance() {
     final status = todayAttendance?.attendanceStatus ?? "NOT_MARKED";
+    final checkedIn = todayAttendance?.checkIn != null;
+    final checkedOut = todayAttendance?.checkout != null;
+    final activeBreak = todayAttendance?.activeBreak ?? false;
 
     return Container(
       margin: const EdgeInsets.only(top: 18),
@@ -231,10 +324,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.cardBorder,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.cardBorder, width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color(0x060F172A),
@@ -318,6 +408,90 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
           const SizedBox(height: 18),
 
+          if (!checkedIn)
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: actionLoading ? null : checkIn,
+                icon: actionLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.location_on_rounded),
+                label: const Text(
+                  "CHECK IN NOW",
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+
+          if (checkedIn && !checkedOut) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: actionLoading
+                        ? null
+                        : (activeBreak ? null : startBreak),
+                    icon: const Icon(Icons.coffee_rounded, size: 18),
+                    label: const Text("Start Break"),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: actionLoading
+                        ? null
+                        : (activeBreak ? endBreak : null),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                    label: const Text("End Break"),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: actionLoading || activeBreak ? null : checkout,
+                icon: const Icon(Icons.logout_rounded, size: 18),
+                label: const Text(
+                  "CHECKOUT",
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+
+          if (checkedOut)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.successBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.success.withValues(alpha: 0.25),
+                ),
+              ),
+              child: const Text(
+                "Attendance concluded for today.",
+                style: TextStyle(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 14),
+
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -347,11 +521,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
               color: iconColor.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: iconColor,
-            ),
+            child: Icon(icon, size: 18, color: iconColor),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -397,10 +567,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.cardBorder,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.cardBorder, width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color(0x060F172A),
@@ -426,11 +593,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     borderRadius: BorderRadius.circular(14),
                     color: iconColor.withValues(alpha: 0.10),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 24,
-                    color: iconColor,
-                  ),
+                  child: Icon(icon, size: 24, color: iconColor),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -472,7 +635,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("NOVOX Staff"),
         actions: [
@@ -490,9 +653,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
         ],
       ),
       body: loading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: loadDashboard,
               color: AppColors.primary,

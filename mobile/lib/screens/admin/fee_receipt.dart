@@ -79,7 +79,7 @@ class _FeeReceiptScreenState extends State<FeeReceiptScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("Payment Receipt"),
       ),

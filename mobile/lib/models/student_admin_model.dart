@@ -13,6 +13,7 @@ class StudentAdminModel {
   final String? joiningDate;
   final String? guardianName;
   final String? guardianPhone;
+  final double totalFees;
 
   final bool isActive;
 
@@ -28,6 +29,7 @@ class StudentAdminModel {
     this.joiningDate,
     this.guardianName,
     this.guardianPhone,
+    this.totalFees = 0,
     required this.isActive,
   });
 
@@ -54,6 +56,7 @@ class StudentAdminModel {
           json['guardian_name']?.toString(),
       guardianPhone:
           json['guardian_phone']?.toString(),
+      totalFees: _toDouble(json['total_fees']),
       isActive:
           json['is_active'] == null
               ? true
@@ -74,6 +77,7 @@ class StudentAdminModel {
       'joining_date': joiningDate,
       'guardian_name': guardianName,
       'guardian_phone': guardianPhone,
+      'total_fees': totalFees,
       'is_active': isActive,
     };
   }
@@ -87,5 +91,10 @@ class StudentAdminModel {
           value?.toString() ?? '',
         ) ??
         0;
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

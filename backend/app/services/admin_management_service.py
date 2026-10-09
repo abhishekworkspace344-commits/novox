@@ -1,8 +1,10 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.models.student import Student
 from app.models.staff import Staff
+from app.models.fee import StudentFee
 from app.core.security import hash_password
 
 
@@ -40,15 +42,56 @@ def create_student(db: Session, data):
     )
 
     db.add(student)
+    db.flush()
+
+    if data.total_fees is not None and data.total_fees > 0:
+        db.add(
+            StudentFee(
+                student_id=student.id,
+                total_amount=data.total_fees,
+                paid_amount=0,
+                pending_amount=data.total_fees,
+                status="PENDING",
+            )
+        )
+
     db.commit()
     db.refresh(student)
 
-    return student
+    return _student_response(db, student, user)
 
 
 def get_students(db: Session):
+    rows = (
+        db.query(Student, User)
+        .join(User, User.id == Student.user_id)
+        .order_by(Student.id)
+        .all()
+    )
+    return [_student_response(db, student, user) for student, user in rows]
 
-    return db.query(Student).all()
+
+def _student_response(db: Session, student: Student, user: User) -> dict:
+    total_fees = (
+        db.query(func.coalesce(func.sum(StudentFee.total_amount), 0))
+        .filter(StudentFee.student_id == student.id)
+        .scalar()
+    )
+    return {
+        "id": student.id,
+        "user_id": student.user_id,
+        "name": user.name,
+        "email": user.email,
+        "phone": user.phone,
+        "is_active": user.is_active,
+        "student_code": student.student_code,
+        "course": student.course,
+        "batch": student.batch,
+        "joining_date": student.joining_date,
+        "guardian_name": student.guardian_name,
+        "guardian_phone": student.guardian_phone,
+        "total_fees": float(total_fees or 0),
+    }
 
 
 def deactivate_student(

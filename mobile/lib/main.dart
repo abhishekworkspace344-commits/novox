@@ -24,6 +24,17 @@ class NovoxApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "NOVOX",
       theme: AppTheme.lightTheme,
+      builder: (context, child) => Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/novox_page_background.png',
+            fit: BoxFit.cover,
+          ),
+          const ColoredBox(color: Color(0x26020B1D)),
+          ?child,
+        ],
+      ),
       initialRoute: "/login",
       routes: {
         "/login": (_) => const LoginScreen(),

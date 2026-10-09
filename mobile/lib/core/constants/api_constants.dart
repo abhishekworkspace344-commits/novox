@@ -138,6 +138,9 @@ class ApiConstants {
   static const String pendingFees =
       "/fees/pending";
 
+  static const String allStudentFees =
+      "/fees/admin/all";
+
   // Student-specific fee details
   static const String feeStudent =
       "/fees/student";

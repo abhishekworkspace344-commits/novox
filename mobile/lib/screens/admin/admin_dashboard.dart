@@ -538,7 +538,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final data = dashboard!;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text("NOVOX Admin"),
         actions: [

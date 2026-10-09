@@ -56,6 +56,51 @@ def create_fee_structure(
     return fee_structure
 
 
+def update_fee_structure(
+    db: Session,
+    structure_id: int,
+    course: str,
+    fee_type: str,
+    total_amount: float,
+    description: str | None = None,
+):
+    structure = db.query(FeeStructure).filter(
+        FeeStructure.id == structure_id
+    ).first()
+    if not structure:
+        raise ValueError("Fee structure not found")
+
+    structure.course = course
+    structure.fee_type = fee_type
+    structure.total_amount = total_amount
+    structure.description = description
+    db.commit()
+    db.refresh(structure)
+    return structure
+
+
+def update_student_fee(
+    db: Session,
+    student_fee: StudentFee,
+    total_amount: float,
+):
+    if total_amount < student_fee.paid_amount:
+        raise ValueError(
+            "Total fee cannot be less than the amount already paid"
+        )
+
+    student_fee.total_amount = total_amount
+    pending_amount, status = calculate_fee_status(
+        total_amount,
+        student_fee.paid_amount,
+    )
+    student_fee.pending_amount = pending_amount
+    student_fee.status = status
+    db.commit()
+    db.refresh(student_fee)
+    return student_fee
+
+
 # ============================================================
 # ASSIGN FEE TO STUDENT
 # ============================================================

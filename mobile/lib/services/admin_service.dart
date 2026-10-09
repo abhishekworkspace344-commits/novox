@@ -95,6 +95,7 @@ class AdminService {
     String? joiningDate,
     String? guardianName,
     String? guardianPhone,
+    double? totalFees,
   }) async {
     final response = await apiClient.dio.post(
       ApiConstants.adminStudents,
@@ -109,6 +110,7 @@ class AdminService {
         "joining_date": joiningDate,
         "guardian_name": guardianName,
         "guardian_phone": guardianPhone,
+        "total_fees": totalFees,
       },
     );
 
@@ -276,6 +278,56 @@ class AdminService {
         .toList();
   }
 
+  Future<List<AdminFeeModel>> getAllStudentFees() async {
+    try {
+      final response = await apiClient.dio.get(
+        ApiConstants.allStudentFees,
+      );
+      final data = response.data;
+      if (data is! List) return [];
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(AdminFeeModel.fromJson)
+          .toList();
+    } on DioException catch (error) {
+      if (error.response?.statusCode != 404) rethrow;
+
+      // Older backend instances may not yet expose /fees/admin/all.
+      // The per-student details route already returns paid and unpaid records.
+      final students = await getStudents();
+      final feeResponses = await Future.wait(
+        students.map(
+          (student) => apiClient.dio.get(
+            '${ApiConstants.feeStudent}/${student.id}',
+          ),
+        ),
+      );
+      final records = <AdminFeeModel>[];
+      for (var index = 0; index < feeResponses.length; index++) {
+        final data = feeResponses[index].data;
+        if (data is! List) continue;
+        for (final item in data.whereType<Map<String, dynamic>>()) {
+          records.add(
+            AdminFeeModel.fromJson({
+              ...item,
+              'student_name': students[index].name,
+              'student_code': students[index].studentCode,
+              'course': students[index].course,
+            }),
+          );
+        }
+      }
+      return records;
+    }
+  }
+
+  Future<void> updateStudentFee(int feeId, double totalAmount) async {
+    await apiClient.dio.put(
+      '${ApiConstants.studentFee}/$feeId',
+      data: {'total_amount': totalAmount},
+    );
+  }
+
   // ------------------------------------------------------------
   // CREATE FEE STRUCTURE
   // ------------------------------------------------------------
@@ -285,6 +337,16 @@ class AdminService {
   ) async {
     await apiClient.dio.post(
       ApiConstants.feeStructure,
+      data: data,
+    );
+  }
+
+  Future<void> updateFeeStructure(
+    int structureId,
+    Map<String, dynamic> data,
+  ) async {
+    await apiClient.dio.put(
+      '${ApiConstants.feeStructure}/$structureId',
       data: data,
     );
   }
