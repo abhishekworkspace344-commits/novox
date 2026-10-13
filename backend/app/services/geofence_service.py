@@ -43,9 +43,7 @@ def validate_geofence(
 
     settings = (
         db.query(GeofenceSettings)
-        .filter(
-            GeofenceSettings.active == True
-        )
+        .order_by(GeofenceSettings.id.desc())
         .first()
     )
 
@@ -53,6 +51,23 @@ def validate_geofence(
         return {
             "valid": False,
             "reason": "Geofence is not configured",
+            "distance": None,
+        }
+
+    if not settings.active:
+        return {
+            "valid": True,
+            "enforced": False,
+            "reason": "Geofence enforcement is disabled",
+            "distance": None,
+        }
+
+    if all(value is not None for value in (settings.south, settings.north, settings.west, settings.east)):
+        inside = settings.south <= latitude <= settings.north and settings.west <= longitude <= settings.east
+        return {
+            "valid": inside,
+            "enforced": True,
+            "reason": "Inside Campus" if inside else "Out of Campus",
             "distance": None,
         }
 
@@ -67,6 +82,7 @@ def validate_geofence(
 
     return {
         "valid": inside,
+        "enforced": True,
         "reason": (
             "Inside Campus"
             if inside

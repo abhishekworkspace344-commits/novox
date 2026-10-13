@@ -93,7 +93,7 @@ def get_today_attendance(db: Session):
 
     today = date.today()
 
-    return (
+    records = (
         db.query(Attendance)
         .filter(
             Attendance.attendance_date == today
@@ -103,6 +103,20 @@ def get_today_attendance(db: Session):
         )
         .all()
     )
+
+    return [
+        {
+            "attendance_id": record.id,
+            "user_id": record.user_id,
+            "attendance_date": record.attendance_date,
+            "check_in": record.check_in,
+            "checkout": record.checkout,
+            "attendance_status": record.attendance_status,
+            "arrival_status": record.arrival_status,
+            "check_in_distance": record.check_in_distance,
+        }
+        for record in records
+    ]
 
 
 def get_pending_fees(db: Session):

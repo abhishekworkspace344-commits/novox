@@ -3,7 +3,7 @@ from datetime import time
 from sqlalchemy import extract
 from sqlalchemy.orm import Session
 
-from app.core.timezone import now_india, today_india
+from app.core.timezone import elapsed_between, now_india, today_india
 from app.models.attendance import Attendance
 from app.models.attendance_break import AttendanceBreak
 from app.services.geofence_service import validate_geofence
@@ -255,8 +255,8 @@ def end_break(
 
     active_break.end_time = current_time
 
-    duration = (
-        current_time - active_break.start_time
+    duration = elapsed_between(
+        active_break.start_time, current_time
     ).total_seconds() / 60
 
     active_break.duration_minutes = max(
@@ -351,9 +351,7 @@ def checkout_user(
     # Calculate work duration
     # --------------------------------------------------------
 
-    total_duration = (
-        checkout_time - attendance.check_in
-    )
+    total_duration = elapsed_between(attendance.check_in, checkout_time)
 
     total_work_minutes = (
         int(total_duration.total_seconds() // 60)
@@ -415,6 +413,13 @@ def auto_checkout_user(
     )
 
     # User must be OUTSIDE the campus
+    if not geofence_result.get("enforced", True):
+        return {
+            "success": False,
+            "message": "Automatic checkout requires an active geofence",
+            "attendance": attendance,
+        }
+
     if geofence_result["valid"]:
         return {
             "success": False,
@@ -440,8 +445,8 @@ def auto_checkout_user(
     if active_break:
         active_break.end_time = current_time
 
-        duration = (
-            current_time - active_break.start_time
+        duration = elapsed_between(
+            active_break.start_time, current_time
         ).total_seconds() / 60
 
         active_break.duration_minutes = max(
@@ -469,9 +474,7 @@ def auto_checkout_user(
 
     attendance.checkout = current_time
 
-    total_duration = (
-        current_time - attendance.check_in
-    )
+    total_duration = elapsed_between(attendance.check_in, current_time)
 
     total_work_minutes = (
         int(total_duration.total_seconds() // 60)
@@ -537,10 +540,10 @@ def get_attendance_history(
     if not records:
         return []
 
-    active_attendance_ids = {
-        attendance_id
-        for (attendance_id,) in (
-            db.query(AttendanceBreak.attendance_id)
+    active_break_starts = {
+        attendance_id: start_time
+        for attendance_id, start_time in (
+            db.query(AttendanceBreak.attendance_id, AttendanceBreak.start_time)
             .filter(
                 AttendanceBreak.attendance_id.in_(
                     [record.id for record in records]
@@ -561,7 +564,8 @@ def get_attendance_history(
             "arrival_status": record.arrival_status,
             "total_break_minutes": record.total_break_minutes,
             "total_work_minutes": record.total_work_minutes,
-            "active_break": record.id in active_attendance_ids,
+            "active_break": record.id in active_break_starts,
+            "current_break_start": active_break_starts.get(record.id),
         }
         for record in records
     ]

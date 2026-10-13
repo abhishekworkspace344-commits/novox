@@ -30,6 +30,12 @@ class GeofenceSettings(Base):
         nullable=False,
     )
 
+    # Optional campus rectangle. Null bounds keep legacy radius geofences working.
+    south: Mapped[float | None] = mapped_column(Float, nullable=True)
+    north: Mapped[float | None] = mapped_column(Float, nullable=True)
+    west: Mapped[float | None] = mapped_column(Float, nullable=True)
+    east: Mapped[float | None] = mapped_column(Float, nullable=True)
+
     active: Mapped[bool] = mapped_column(
         Boolean,
         default=True,

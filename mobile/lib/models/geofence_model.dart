@@ -4,6 +4,7 @@ class GeofenceModel {
   final double longitude;
   final double radiusMeters;
   final bool active;
+  final double? south, north, west, east;
 
   GeofenceModel({
     required this.id,
@@ -11,6 +12,7 @@ class GeofenceModel {
     required this.longitude,
     required this.radiusMeters,
     required this.active,
+    this.south, this.north, this.west, this.east,
   });
 
   factory GeofenceModel.fromJson(
@@ -27,6 +29,10 @@ class GeofenceModel {
             json['radius_meters'].toString(),
           ),
       active: json['active'] ?? true,
+      south: json['south'] == null ? null : double.parse(json['south'].toString()),
+      north: json['north'] == null ? null : double.parse(json['north'].toString()),
+      west: json['west'] == null ? null : double.parse(json['west'].toString()),
+      east: json['east'] == null ? null : double.parse(json['east'].toString()),
     );
   }
 }

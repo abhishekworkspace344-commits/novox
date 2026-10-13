@@ -29,25 +29,25 @@ class DashboardCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppColors.cardBorder,
           width: 1,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x060F172A),
-            blurRadius: 10,
-            offset: Offset(0, 3),
+            color: Color(0x0A18233D),
+            blurRadius: 24,
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           splashColor: AppColors.primarySoft,
           highlightColor: AppColors.primarySoft.withValues(alpha: 0.5),
           child: Padding(
@@ -55,11 +55,11 @@ class DashboardCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: effectiveIconBgColor,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(15),
                     border: Border.all(
                       color: effectiveIconColor.withValues(alpha: 0.15),
                       width: 1,
@@ -89,10 +89,10 @@ class DashboardCard extends StatelessWidget {
                       Text(
                         value,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 23,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
-                          letterSpacing: -0.3,
+                          letterSpacing: -0.5,
                         ),
                       ),
                       if (subtitle != null) ...[

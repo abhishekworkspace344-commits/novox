@@ -10,6 +10,7 @@ import '../../models/admin_dashboard_model.dart';
 import '../../services/admin_service.dart';
 import '../../services/admin_websocket_service.dart';
 import '../../widgets/dashboard_card.dart';
+import '../../widgets/section_heading.dart';
 import '../../widgets/status_badge.dart';
 
 import 'admin_attendance.dart';
@@ -572,14 +573,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             const SizedBox(height: 24),
 
             // Section Title
-            const Text(
-              "Institutional Overview",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.2,
-              ),
+            const SectionHeading(
+              title: "Institutional Overview",
+              subtitle: "A live snapshot of campus activity",
             ),
 
             const SizedBox(height: 14),

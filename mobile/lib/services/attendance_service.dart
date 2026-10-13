@@ -124,12 +124,13 @@ class AttendanceService {
     final response = await apiClient.dio.get(ApiConstants.attendanceHistory);
 
     final records = _recordsFromResponse(response.data);
-    if (records.isEmpty) {
-      return null;
+    final now = DateTime.now();
+    final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    for (final rawRecord in records) {
+      final record = _attendanceFromJson(rawRecord);
+      if (record.attendanceDate.split('T').first == today) return record;
     }
-
-    // Backend returns newest records first.
-    return _attendanceFromJson(records.first);
+    return null;
   }
 
   // ------------------------------------------------------------

@@ -7,9 +7,6 @@ def get_active_geofence(db: Session):
 
     return (
         db.query(GeofenceSettings)
-        .filter(
-            GeofenceSettings.active == True
-        )
         .order_by(
             GeofenceSettings.id.desc()
         )
@@ -22,20 +19,17 @@ def create_geofence(
     latitude: float,
     longitude: float,
     radius_meters: float,
+    active: bool = True,
+    south: float | None = None, north: float | None = None,
+    west: float | None = None, east: float | None = None,
 ):
-
-    # Disable existing geofences
-    db.query(GeofenceSettings).update(
-        {
-            GeofenceSettings.active: False
-        }
-    )
 
     geofence = GeofenceSettings(
         latitude=latitude,
         longitude=longitude,
         radius_meters=radius_meters,
-        active=True,
+        active=active,
+        south=south, north=north, west=west, east=east,
     )
 
     db.add(geofence)
@@ -51,6 +45,9 @@ def update_geofence(
     latitude: float,
     longitude: float,
     radius_meters: float,
+    active: bool = True,
+    south: float | None = None, north: float | None = None,
+    west: float | None = None, east: float | None = None,
 ):
 
     geofence = (
@@ -69,6 +66,9 @@ def update_geofence(
     geofence.latitude = latitude
     geofence.longitude = longitude
     geofence.radius_meters = radius_meters
+    geofence.active = active
+    geofence.south, geofence.north = south, north
+    geofence.west, geofence.east = west, east
 
     db.commit()
     db.refresh(geofence)

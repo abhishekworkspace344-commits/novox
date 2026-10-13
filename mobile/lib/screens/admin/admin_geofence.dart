@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/geofence_model.dart';
 import '../../services/admin_service.dart';
 import '../../widgets/status_badge.dart';
+import 'geofence_map_picker.dart';
 
 class AdminGeofenceScreen extends StatefulWidget {
   const AdminGeofenceScreen({
@@ -70,6 +72,10 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
     final radiusController = TextEditingController(
       text: geofence?.radiusMeters.toString() ?? "100",
     );
+    final southController = TextEditingController(text: geofence?.south?.toString() ?? '');
+    final northController = TextEditingController(text: geofence?.north?.toString() ?? '');
+    final westController = TextEditingController(text: geofence?.west?.toString() ?? '');
+    final eastController = TextEditingController(text: geofence?.east?.toString() ?? '');
 
     bool active = geofence?.active ?? true;
 
@@ -101,6 +107,24 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
                         Icons.location_searching_rounded,
                         signed: true,
                       ),
+                      Align(alignment: Alignment.centerLeft, child: TextButton.icon(
+                        icon: const Icon(Icons.map_outlined), label: const Text('Choose center on map'),
+                        onPressed: () async {
+                          final lat = double.tryParse(latitudeController.text) ?? 20.5937;
+                          final lon = double.tryParse(longitudeController.text) ?? 78.9629;
+                          final point = await showDialog<LatLng>(context: context, builder: (_) => GeofenceMapPicker(initialPoint: LatLng(lat, lon)));
+                          if (point != null) {
+                            latitudeController.text = point.latitude.toStringAsFixed(6);
+                            longitudeController.text = point.longitude.toStringAsFixed(6);
+                            setDialogState(() {});
+                          }
+                        },
+                      )),
+                      const Align(alignment: Alignment.centerLeft, child: Padding(padding: EdgeInsets.only(bottom: 8), child: Text('Optional rectangular campus boundary', style: TextStyle(fontWeight: FontWeight.w600)))),
+                      inputField(southController, 'South latitude', Icons.south, signed: true),
+                      inputField(northController, 'North latitude', Icons.north, signed: true),
+                      inputField(westController, 'West longitude', Icons.west, signed: true),
+                      inputField(eastController, 'East longitude', Icons.east, signed: true),
                       inputField(
                         radiusController,
                         "Radius (meters)",
@@ -115,7 +139,7 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: const Text(
-                          "Enforce attendance within this radius",
+                          "Enforce attendance inside the campus boundary",
                           style: TextStyle(fontSize: 12),
                         ),
                         value: active,
@@ -145,6 +169,7 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
                             latitudeController.text,
                             longitudeController.text,
                             radiusController.text,
+                            southController.text, northController.text, westController.text, eastController.text,
                             active,
                             setDialogState,
                           );
@@ -170,6 +195,7 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
     latitudeController.dispose();
     longitudeController.dispose();
     radiusController.dispose();
+    southController.dispose(); northController.dispose(); westController.dispose(); eastController.dispose();
   }
 
   Future<void> saveGeofence(
@@ -177,6 +203,7 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
     String latitudeText,
     String longitudeText,
     String radiusText,
+    String southText, String northText, String westText, String eastText,
     bool active,
     void Function(void Function()) setDialogState,
   ) async {
@@ -204,6 +231,16 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
       return;
     }
 
+    final boundsText = [southText, northText, westText, eastText];
+    final bounds = boundsText.map((value) => value.trim().isEmpty ? null : double.tryParse(value.trim())).toList();
+    if (bounds.any((value) => value == null) && boundsText.any((value) => value.trim().isNotEmpty)) {
+      showMessage('Enter all four boundary coordinates, or leave them all blank'); return;
+    }
+    if (bounds.every((value) => value != null)) {
+      if (bounds[0]! < -90 || bounds[1]! > 90 || bounds[0]! >= bounds[1]!) { showMessage('South/north must be valid latitudes, with south below north'); return; }
+      if (bounds[2]! < -180 || bounds[3]! > 180 || bounds[2]! >= bounds[3]!) { showMessage('West/east must be valid longitudes, with west below east'); return; }
+    }
+
     setDialogState(() {
       saving = true;
     });
@@ -213,6 +250,7 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
       "longitude": longitude,
       "radius_meters": radius,
       "active": active,
+      "south": bounds[0], "north": bounds[1], "west": bounds[2], "east": bounds[3],
     };
 
     try {
@@ -226,6 +264,9 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
       Navigator.pop(dialogContext);
 
       if (!mounted) return;
+      setState(() {
+        saving = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Geofence settings saved successfully"),
@@ -477,6 +518,12 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
               infoRow("Latitude", geo.latitude.toStringAsFixed(6), Icons.my_location_rounded),
               infoRow("Longitude", geo.longitude.toStringAsFixed(6), Icons.location_searching_rounded),
               infoRow("Radius", "${geo.radiusMeters.toStringAsFixed(0)} meters", Icons.radar_rounded),
+              if (geo.south != null) ...[
+                infoRow("South", geo.south!.toStringAsFixed(6), Icons.south),
+                infoRow("North", geo.north!.toStringAsFixed(6), Icons.north),
+                infoRow("West", geo.west!.toStringAsFixed(6), Icons.west),
+                infoRow("East", geo.east!.toStringAsFixed(6), Icons.east),
+              ],
               infoRow("Perimeter State", geo.active ? "Enforced" : "Disabled", geo.active ? Icons.check_circle_outline_rounded : Icons.cancel_outlined),
               const SizedBox(height: 16),
               SizedBox(

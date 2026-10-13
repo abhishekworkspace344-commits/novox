@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -9,6 +11,7 @@ import '../../models/attendance_model.dart';
 import '../../services/attendance_service.dart';
 import '../../services/fee_service.dart';
 import '../../widgets/status_badge.dart';
+import '../../widgets/section_heading.dart';
 
 import 'student_attendance.dart';
 import 'student_fees.dart';
@@ -31,6 +34,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   bool loading = true;
   bool actionLoading = false;
+  Timer? attendanceTicker;
+  bool refreshingForNewDay = false;
 
   @override
   void initState() {
@@ -38,7 +43,63 @@ class _StudentDashboardState extends State<StudentDashboard> {
     final apiClient = ApiClient();
     attendanceService = AttendanceService(apiClient);
     feeService = FeeService(apiClient);
+    attendanceTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      final record = todayAttendance;
+      final now = DateTime.now();
+      final today = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      if (record != null && record.attendanceDate != today && !refreshingForNewDay) {
+        refreshingForNewDay = true;
+        setState(() => todayAttendance = null);
+        loadDashboard().whenComplete(() => refreshingForNewDay = false);
+        return;
+      }
+      if (mounted && todayAttendance?.checkIn != null && todayAttendance?.checkout == null) {
+        setState(() {});
+      }
+    });
     loadDashboard();
+  }
+
+  @override
+  void dispose() {
+    attendanceTicker?.cancel();
+    super.dispose();
+  }
+
+  Duration workedToday() {
+    final record = todayAttendance;
+    if (record == null) return Duration.zero;
+    if (record.checkout != null && record.totalWorkMinutes != null) {
+      return Duration(minutes: record.totalWorkMinutes!);
+    }
+    if (record.checkIn == null) return Duration.zero;
+    try {
+      var elapsed = DateTime.now().difference(DateTime.parse(record.checkIn!));
+      elapsed -= Duration(minutes: record.totalBreakMinutes);
+      if (record.activeBreak && record.currentBreakStart != null) {
+        elapsed -= DateTime.now().difference(DateTime.parse(record.currentBreakStart!));
+      }
+      return elapsed.isNegative ? Duration.zero : elapsed;
+    } catch (_) {
+      return Duration(minutes: record.totalWorkMinutes ?? 0);
+    }
+  }
+
+  String formatDuration(Duration duration) {
+    final hours = duration.inHours.toString().padLeft(2, '0');
+    final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return '$hours:$minutes:$seconds';
+  }
+
+  int breakMinutesToday() {
+    final record = todayAttendance;
+    if (record == null) return 0;
+    var minutes = record.totalBreakMinutes;
+    if (record.activeBreak && record.currentBreakStart != null) {
+      try { minutes += DateTime.now().difference(DateTime.parse(record.currentBreakStart!)).inMinutes; } catch (_) {}
+    }
+    return minutes;
   }
 
   Future<void> loadDashboard() async {
@@ -408,12 +469,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
               ),
               buildInfo(
                 "Break Time",
-                "${todayAttendance?.totalBreakMinutes ?? 0} min",
+                "${breakMinutesToday()} min",
                 Icons.coffee_rounded,
                 AppColors.warning,
               ),
             ],
           ),
+
+          const SizedBox(height: 14),
+          Row(children: [buildInfo("Worked Today", formatDuration(workedToday()), Icons.schedule_rounded, AppColors.success)]),
 
           const SizedBox(height: 16),
 
@@ -486,7 +550,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: actionLoading ? null : startBreak,
+                    onPressed: actionLoading || (todayAttendance?.activeBreak ?? false) ? null : startBreak,
                     icon: const Icon(Icons.coffee_rounded, size: 18),
                     label: const Text("Start Break"),
                   ),
@@ -494,7 +558,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: actionLoading ? null : endBreak,
+                    onPressed: actionLoading || !(todayAttendance?.activeBreak ?? false) ? null : endBreak,
                     icon: const Icon(Icons.play_arrow_rounded, size: 18),
                     label: const Text("End Break"),
                   ),
@@ -506,7 +570,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton.icon(
-                onPressed: actionLoading ? null : checkout,
+                onPressed: actionLoading || (todayAttendance?.activeBreak ?? false) ? null : checkout,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                 ),
@@ -747,14 +811,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   buildHeader(),
                   buildAttendanceCard(),
                   const SizedBox(height: 24),
-                  const Text(
-                    "Quick Access",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.2,
-                    ),
+                  const SectionHeading(
+                    title: "Quick Access",
+                    subtitle: "Your attendance and fee records",
                   ),
                   const SizedBox(height: 12),
                   buildMenuCard(

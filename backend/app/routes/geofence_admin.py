@@ -71,6 +71,8 @@ def set_geofence(
         latitude=data.latitude,
         longitude=data.longitude,
         radius_meters=data.radius_meters,
+        active=data.active,
+        south=data.south, north=data.north, west=data.west, east=data.east,
     )
 
 
@@ -99,6 +101,8 @@ def edit_geofence(
             latitude=data.latitude,
             longitude=data.longitude,
             radius_meters=data.radius_meters,
+            active=data.active,
+            south=data.south, north=data.north, west=data.west, east=data.east,
         )
 
     except ValueError as e:

@@ -31,7 +31,7 @@ class NovoxApp extends StatelessWidget {
             'assets/images/novox_page_background.png',
             fit: BoxFit.cover,
           ),
-          const ColoredBox(color: Color(0x26020B1D)),
+          const ColoredBox(color: Color(0xDDF4F6FB)),
           ?child,
         ],
       ),

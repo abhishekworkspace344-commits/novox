@@ -433,7 +433,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primaryDark,
+                      color: Colors.white,
                       letterSpacing: 1.5,
                     ),
                   ),
@@ -447,7 +447,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
+                      color: const Color(0xFFDCE5FA),
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -463,16 +463,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
+                      color: const Color(0xF7FFFFFF),
+                      borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: AppColors.cardBorder,
+                        color: Colors.white,
                         width: 1,
                       ),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0x0A0F172A),
-                          blurRadius: 24,
+                          color: Color(0x28101D42),
+                          blurRadius: 34,
                           offset: Offset(
                             0,
                             8,

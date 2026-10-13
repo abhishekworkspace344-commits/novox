@@ -9,6 +9,7 @@ class AttendanceModel {
   final int totalBreakMinutes;
   final int? totalWorkMinutes;
   final bool activeBreak;
+  final String? currentBreakStart;
 
   AttendanceModel({
     required this.id,
@@ -21,6 +22,7 @@ class AttendanceModel {
     required this.totalBreakMinutes,
     this.totalWorkMinutes,
     this.activeBreak = false,
+    this.currentBreakStart,
   });
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class AttendanceModel {
       totalBreakMinutes: json["total_break_minutes"] ?? 0,
       totalWorkMinutes: json["total_work_minutes"],
       activeBreak: json["active_break"] == true,
+      currentBreakStart: json["current_break_start"]?.toString(),
     );
   }
 }

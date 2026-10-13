@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
+from sqlalchemy import text, inspect
 from app.routes.websocket import router as websocket_router
 
 from app.core.config import settings
 from app.database.base import Base
 from app.database.connection import engine
+# Register every mapped model (including salary tables) before create_all.
+import app.models  # noqa: F401
 from app.models.user import User
 from app.routes.auth import router as auth_router
 
@@ -34,6 +36,13 @@ from app.routes.report_exports import (
 
 
 Base.metadata.create_all(bind=engine)
+
+# create_all does not add columns to an existing installation.
+with engine.begin() as connection:
+    existing_columns = {column["name"] for column in inspect(connection).get_columns("geofence_settings")}
+    for column_name in ("south", "north", "west", "east"):
+        if column_name not in existing_columns:
+            connection.execute(text(f"ALTER TABLE geofence_settings ADD COLUMN {column_name} FLOAT NULL"))
 
 
 
