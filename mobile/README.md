@@ -1,6 +1,8 @@
-# NOVOX Mobile
+# NOVOX App (Android and Web)
 
-Flutter client for Android and web browsers (including Microsoft Edge).
+Flutter client for Android and web browsers (including Microsoft Edge). The web
+build uses the same student, staff, and administrator screens, API services,
+FastAPI backend, and configured database as the Android app.
 
 ## Prerequisites
 
@@ -31,17 +33,34 @@ Launch Android by selecting its device ID from `flutter devices`:
 flutter run -d <android-device-id>
 ```
 
-The default API address is the NOVOX LAN server at `http://192.168.29.166:8000`.
-For Edge or the Android emulator, override it with the appropriate host address
-(`127.0.0.1` for Edge or `10.0.2.2` for the emulator). For another physical
-Android device, use the computer's LAN address and ensure the device can reach it:
+The default API address is `http://127.0.0.1:8000` in Edge and the NOVOX LAN
+server at `http://192.168.29.167:8000` on a physical Android phone. For Android
+emulator use `10.0.2.2`; for another physical phone use the computer's LAN
+address and ensure the device can reach it. Set a different API address with:
 
 ```powershell
-flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://<computer-lan-ip>:8000
+# Android emulator
+flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://10.0.2.2:8000
+
+# Physical Android phone (replace with the computer's current LAN IPv4 address)
+flutter run -d <android-device-id> --dart-define=API_BASE_URL=http://192.168.29.167:8000
 ```
 
-`API_BASE_URL` can also be set for Edge or a production deployment. Use an
-HTTPS URL outside local development.
+For a physical phone, keep it on the same Wi-Fi as the computer, start FastAPI
+with `--host 0.0.0.0`, and allow inbound TCP port 8000 in the computer firewall.
+The Android manifest permits cleartext HTTP for local development; use HTTPS
+before distributing a production build.
+
+`API_BASE_URL` can also be set for Edge or a production deployment. Build the
+web site with the URL of the existing FastAPI service:
+
+```powershell
+flutter build web --dart-define=API_BASE_URL=https://api.example.com
+```
+
+Serve the generated `build/web` directory over HTTPS and allow that website's
+origin in the backend `CORS_ALLOW_ORIGIN_REGEX`. Browser location access for
+attendance requires a secure origin (HTTPS, or localhost during development).
 
 ## Build
 

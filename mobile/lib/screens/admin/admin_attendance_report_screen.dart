@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../../services/report_service.dart';
 
@@ -195,23 +196,23 @@ class _AdminAttendanceReportScreenState
 
     switch (value.toUpperCase()) {
       case "ON_TIME":
-        backgroundColor = Colors.green.shade100;
-        textColor = Colors.green.shade800;
+        backgroundColor = AppColors.successBg;
+        textColor = AppColors.success;
         break;
 
       case "LATE":
-        backgroundColor = Colors.orange.shade100;
-        textColor = Colors.orange.shade800;
+        backgroundColor = AppColors.warningBg;
+        textColor = AppColors.warning;
         break;
 
       case "PRESENT":
-        backgroundColor = Colors.blue.shade100;
-        textColor = Colors.blue.shade800;
+        backgroundColor = AppColors.infoBg;
+        textColor = AppColors.info;
         break;
 
       default:
-        backgroundColor = Colors.grey.shade200;
-        textColor = Colors.grey.shade800;
+        backgroundColor = AppColors.surfaceVariant;
+        textColor = AppColors.textSecondary;
     }
 
     return Container(
@@ -249,7 +250,7 @@ class _AdminAttendanceReportScreenState
           title,
           style: const TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: AppColors.textMuted,
           ),
         ),
         const SizedBox(height: 4),
@@ -344,7 +345,7 @@ class _AdminAttendanceReportScreenState
                       Text(
                         displayDate(date),
                         style: const TextStyle(
-                          color: Colors.grey,
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ],

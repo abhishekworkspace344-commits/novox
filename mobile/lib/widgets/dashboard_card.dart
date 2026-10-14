@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 
@@ -26,95 +28,129 @@ class DashboardCard extends StatelessWidget {
     final effectiveIconColor = iconColor ?? AppColors.primary;
     final effectiveIconBgColor = iconBgColor ?? AppColors.primarySoft;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.cardBorder,
-          width: 1,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A18233D),
-            blurRadius: 24,
-            offset: Offset(0, 8),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          clipBehavior: Clip.antiAlias,
+          decoration: BoxDecoration(
+            gradient: AppColors.cardGradient,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.cardBorderHighlight.withValues(alpha: 0.42)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x66000612),
+                blurRadius: 26,
+                offset: Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          splashColor: AppColors.primarySoft,
-          highlightColor: AppColors.primarySoft.withValues(alpha: 0.5),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              splashColor: AppColors.primarySoft,
+              highlightColor: AppColors.primarySoft.withValues(alpha: 0.35),
+              child: Stack(
+            children: [
+              Positioned(
+                right: -24,
+                top: -32,
+                child: Container(
+                  width: 112,
+                  height: 112,
                   decoration: BoxDecoration(
-                    color: effectiveIconBgColor,
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border.all(
-                      color: effectiveIconColor.withValues(alpha: 0.15),
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 26,
-                    color: effectiveIconColor,
+                    shape: BoxShape.circle,
+                    color: effectiveIconBgColor.withValues(alpha: 0.55),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 23,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                              letterSpacing: 0.1,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: effectiveIconBgColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: effectiveIconColor.withValues(alpha: 0.12),
+                            ),
+                          ),
+                          child: Icon(icon, size: 22, color: effectiveIconColor),
+                        ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 27,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ],
-                  ),
+                    if (onTap != null) ...[
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Text(
+                            'View details',
+                            style: TextStyle(
+                              color: effectiveIconColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          Icon(Icons.arrow_forward_rounded,
+                              size: 15, color: effectiveIconColor),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-                if (onTap != null)
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 20,
-                    color: AppColors.textMuted,
-                  ),
-              ],
+              ),
+            ],
+              ),
             ),
           ),
         ),

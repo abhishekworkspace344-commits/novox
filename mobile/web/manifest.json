@@ -1,12 +1,12 @@
 {
-    "name": "mobile",
-    "short_name": "mobile",
+    "name": "NOVOX Education Management",
+    "short_name": "NOVOX",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#101D42",
+    "theme_color": "#101D42",
+    "description": "NOVOX education management portal for students, staff and administrators.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

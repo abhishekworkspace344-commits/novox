@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
+import '../../core/storage/download_bytes.dart';
 import '../../services/fee_service.dart';
 
 class StudentFeesScreen extends StatefulWidget {
@@ -97,7 +99,13 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
 
   Future<void> downloadReceipt(String receiptNumber) async {
     try {
-      await feeService.downloadMyReceipt(receiptNumber);
+      final bytes = await feeService.downloadMyReceipt(receiptNumber);
+      if (bytes.isEmpty) throw Exception('The receipt file was empty.');
+      await downloadBytes(
+        bytes,
+        filename: '$receiptNumber.pdf',
+        contentType: 'application/pdf',
+      );
 
       if (!mounted) return;
 
@@ -189,7 +197,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
         margin: const EdgeInsets.only(right: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
@@ -214,7 +222,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
             const SizedBox(height: 5),
             Text(
@@ -299,7 +307,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
                           child: Text(
                             course,
                             style: const TextStyle(
-                              color: Colors.grey,
+                              color: AppColors.textMuted,
                               fontSize: 12,
                             ),
                           ),
@@ -358,7 +366,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
 
             Text(
               "${percentage.toStringAsFixed(0)}% paid",
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
         ),
@@ -375,7 +383,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          Text(title, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           const SizedBox(height: 4),
           Text(
             "₹${value.toStringAsFixed(2)}",
@@ -437,7 +445,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
                       Text(
                         method,
                         style: const TextStyle(
-                          color: Colors.grey,
+                          color: AppColors.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -483,7 +491,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
             width: 110,
             child: Text(
               title,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ),
           Expanded(
@@ -527,12 +535,12 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
     return Container(
       padding: const EdgeInsets.all(35),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 55, color: Colors.grey),
+          Icon(icon, size: 55, color: AppColors.textMuted),
           const SizedBox(height: 12),
           Text(
             title,
@@ -542,7 +550,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
           ),
         ],
       ),
@@ -562,7 +570,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
         return Container(
           height: MediaQuery.of(context).size.height * 0.82,
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
           ),
           child: Column(
@@ -573,7 +581,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
                 width: 45,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: Colors.grey,
+                  color: AppColors.textMuted,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),

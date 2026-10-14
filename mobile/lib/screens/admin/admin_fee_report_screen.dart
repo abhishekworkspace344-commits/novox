@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../../services/report_service.dart';
 
@@ -170,7 +171,7 @@ class _AdminFeeReportScreenState
         Text(
           title,
           style: const TextStyle(
-            color: Colors.grey,
+            color: AppColors.textMuted,
             fontSize: 12,
           ),
         ),

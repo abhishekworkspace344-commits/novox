@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -14,11 +16,13 @@ class _GeofenceMapPickerState extends State<GeofenceMapPicker> {
   late LatLng selected = widget.initialPoint;
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    return AlertDialog(
         title: const Text('Choose campus location'),
         content: SizedBox(
-          width: 700,
-          height: 500,
+          width: math.min(700, screen.width * 0.82),
+          height: math.min(500, screen.height * 0.46),
           child: Column(children: [
             const Text('Tap the map to place the campus center.'),
             const SizedBox(height: 8),
@@ -56,4 +60,5 @@ class _GeofenceMapPickerState extends State<GeofenceMapPicker> {
           FilledButton(onPressed: () => Navigator.pop(context, selected), child: const Text('Use location')),
         ],
       );
+  }
 }

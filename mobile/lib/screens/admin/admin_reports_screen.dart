@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/report_service.dart';
+import '../../widgets/responsive_grid.dart';
 
 import 'admin_attendance_report_screen.dart';
 import 'admin_fee_report_screen.dart';
@@ -69,7 +70,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
         boxShadow: const [
@@ -136,7 +137,7 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
         boxShadow: const [
@@ -302,6 +303,9 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
 
                   const SizedBox(height: 12),
 
+                  ResponsiveGrid(
+                    minItemWidth: 260,
+                    children: [
                   reportCard(
                     "Total Enrolled Students",
                     "${summary?['total_students'] ?? 0}",
@@ -350,6 +354,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                     Icons.payments_rounded,
                     AppColors.success,
                   ),
+                    ],
+                  ),
 
                   const SizedBox(height: 22),
 
@@ -365,6 +371,9 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
 
                   const SizedBox(height: 12),
 
+                  ResponsiveGrid(
+                    minItemWidth: 340,
+                    children: [
                   reportTile(
                     context: context,
                     icon: Icons.fact_check_rounded,
@@ -399,6 +408,8 @@ class _AdminReportsScreenState extends State<AdminReportsScreen> {
                     title: "Payroll & Salary Register",
                     subtitle: "Monthly disbursements, basic pay & net slips",
                     screen: const AdminSalaryReportScreen(),
+                  ),
+                    ],
                   ),
 
                   const SizedBox(height: 20),

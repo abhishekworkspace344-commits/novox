@@ -26,16 +26,12 @@ class ApiConstants {
     }
 
     // ---------------------------------------------------------
-    // 3. Physical Android phone
-    //
-    // PC IPv4:
-    // 192.168.29.166
-    //
-    // FastAPI:
-    // Port 8000
+    // 3. Physical Android phone on the NOVOX development Wi-Fi.
+    // Override with --dart-define=API_BASE_URL=... when the computer's
+    // LAN address changes. Android emulators should use 10.0.2.2 instead.
     // ---------------------------------------------------------
     if (Platform.isAndroid) {
-      return "http://192.168.29.166:8000";
+      return "http://192.168.29.167:8000";
     }
 
     // ---------------------------------------------------------

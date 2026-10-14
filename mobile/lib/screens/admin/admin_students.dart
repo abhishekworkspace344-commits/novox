@@ -107,8 +107,8 @@ class _AdminStudentsState extends State<AdminStudents> {
           builder: (context, setDialogState) {
             return AlertDialog(
               title: const Text("Add New Student"),
-              content: SizedBox(
-                width: 460,
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -317,7 +317,7 @@ class _AdminStudentsState extends State<AdminStudents> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
         boxShadow: const [
@@ -375,7 +375,7 @@ class _AdminStudentsState extends State<AdminStudents> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE0F2FE),
+                            color: AppColors.primarySoft,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -383,7 +383,7 @@ class _AdminStudentsState extends State<AdminStudents> {
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF0284C7),
+                              color: AppColors.primaryLight,
                             ),
                           ),
                         ),

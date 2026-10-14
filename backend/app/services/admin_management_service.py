@@ -1,4 +1,5 @@
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -18,6 +19,14 @@ def create_student(db: Session, data):
 
     if existing:
         raise ValueError("Email already exists")
+
+    existing_student_code = (
+        db.query(Student)
+        .filter(Student.student_code == data.student_code)
+        .first()
+    )
+    if existing_student_code:
+        raise ValueError("Student code already exists")
 
     user = User(
         name=data.name,
@@ -42,7 +51,15 @@ def create_student(db: Session, data):
     )
 
     db.add(student)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError as error:
+        # The unique constraint remains the final guard if two requests race
+        # after the availability check above.
+        db.rollback()
+        if "student_code" in str(error.orig):
+            raise ValueError("Student code already exists") from error
+        raise
 
     if data.total_fees is not None and data.total_fees > 0:
         db.add(

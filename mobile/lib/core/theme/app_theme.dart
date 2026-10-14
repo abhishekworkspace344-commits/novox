@@ -1,44 +1,44 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // A calm navy and cobalt palette with a restrained teal accent.
-  static const Color primary = Color(0xFF2846A3);
-  static const Color primaryDark = Color(0xFF101D42);
-  static const Color primaryLight = Color(0xFF5476E8);
-  static const Color primarySoft = Color(0xFFEDF1FF);
-  static const Color accent = Color(0xFF118C86);
-  static const Color accentLight = Color(0xFFE5F5F3);
+  // Deep navy foundations with electric-blue and cyan highlights.
+  static const Color primary = Color(0xFF4F8CFF);
+  static const Color primaryDark = Color(0xFF07142A);
+  static const Color primaryLight = Color(0xFF83B4FF);
+  static const Color primarySoft = Color(0xFF192E50);
+  static const Color accent = Color(0xFF35C8E8);
+  static const Color accentLight = Color(0xFF123440);
 
-  // Backgrounds & Surfaces (White & Cool Slate)
-  static const Color background = Color(0xFFF4F6FB);
-  static const Color surface = Colors.white; // Crisp White
-  static const Color surfaceVariant = Color(0xFFF0F3F9);
-  static const Color cardBorder = Color(0xFFE4E8F1);
-  static const Color cardBorderHighlight = Color(0xFFC9D5FA);
+  // Night surfaces are layered to give cards a frosted-glass feel.
+  static const Color background = Color(0xFF050B18);
+  static const Color surface = Color(0xCC101D32);
+  static const Color surfaceVariant = Color(0xFF14243B);
+  static const Color cardBorder = Color(0xFF2A4162);
+  static const Color cardBorderHighlight = Color(0xFF5484C8);
 
   // Typography
-  static const Color textPrimary = Color(0xFF18233D);
-  static const Color textSecondary = Color(0xFF5E6A82);
-  static const Color textMuted = Color(0xFF8D98AA);
+  static const Color textPrimary = Color(0xFFF2F6FD);
+  static const Color textSecondary = Color(0xFFB8C7DD);
+  static const Color textMuted = Color(0xFF8295B2);
   static const Color textOnPrimary = Colors.white;
 
   // Status Colors (Premium pastels + deep accents)
-  static const Color success = Color(0xFF16836C);
-  static const Color successBg = Color(0xFFE8F6F1);
-  static const Color warning = Color(0xFFB87816);
-  static const Color warningBg = Color(0xFFFFF5E5);
-  static const Color danger = Color(0xFFBE4653);
-  static const Color dangerBg = Color(0xFFFFEEF0);
-  static const Color info = Color(0xFF3C5FC2);
-  static const Color infoBg = Color(0xFFEDF1FF);
+  static const Color success = Color(0xFF4BD0A3);
+  static const Color successBg = Color(0xFF12372F);
+  static const Color warning = Color(0xFFFFC46B);
+  static const Color warningBg = Color(0xFF3B2D19);
+  static const Color danger = Color(0xFFFF7C8D);
+  static const Color dangerBg = Color(0xFF3C202B);
+  static const Color info = Color(0xFF7AB5FF);
+  static const Color infoBg = Color(0xFF172E4D);
 
   // Gradients
   static const LinearGradient heroGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF101D42),
-      Color(0xFF344FAD),
+      Color(0xFF09162D),
+      Color(0xFF245DBD),
     ],
   );
 
@@ -46,8 +46,8 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Colors.white,
-      Color(0xFFF7F8FC),
+      Color(0xCC1C3452),
+      Color(0xCC0E1A2D),
     ],
   );
 
@@ -55,26 +55,26 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF3556B6),
-      Color(0xFF6C88E9),
+      Color(0xFF1C65D8),
+      Color(0xFF29B8E6),
     ],
   );
 }
 
 class AppTheme {
-  static ThemeData get lightTheme {
+  static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.background,
-      colorScheme: ColorScheme.light(
+      scaffoldBackgroundColor: Colors.transparent,
+      colorScheme: ColorScheme.dark(
         primary: AppColors.primary,
         onPrimary: Colors.white,
         primaryContainer: AppColors.primarySoft,
-        onPrimaryContainer: AppColors.primaryDark,
+        onPrimaryContainer: AppColors.primaryLight,
         secondary: AppColors.accent,
         onSecondary: Colors.white,
         secondaryContainer: AppColors.accentLight,
-        onSecondaryContainer: AppColors.primaryDark,
+        onSecondaryContainer: AppColors.accent,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
         error: AppColors.danger,
@@ -127,7 +127,7 @@ class AppTheme {
 
       // App Bar Theme
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.white,
+        backgroundColor: Color(0xE60A1528),
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -152,10 +152,10 @@ class AppTheme {
       // Card Theme
       cardTheme: CardThemeData(
         color: AppColors.surface,
-        elevation: 1,
+        elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           side: const BorderSide(
             color: AppColors.cardBorder,
             width: 1,
@@ -244,7 +244,7 @@ class AppTheme {
       // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: const Color(0xB3142945),
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -259,7 +259,7 @@ class AppTheme {
           fontSize: 14,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(13),
           borderSide: const BorderSide(
             color: AppColors.cardBorder,
             width: 1.2,
@@ -290,7 +290,7 @@ class AppTheme {
 
       // Dialog Theme
       dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF101D32),
         surfaceTintColor: Colors.transparent,
         elevation: 8,
         shape: RoundedRectangleBorder(
@@ -304,7 +304,7 @@ class AppTheme {
       ),
 
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: const Color(0xFF101D32),
         surfaceTintColor: Colors.transparent,
         showDragHandle: true,
         shape: RoundedRectangleBorder(
@@ -381,7 +381,7 @@ class AppTheme {
       // Snack Bar Theme
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.textPrimary,
+        backgroundColor: const Color(0xFF14243B),
         contentTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 14,
@@ -403,7 +403,7 @@ class AppTheme {
         circularTrackColor: AppColors.primarySoft,
       ),
       navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Color(0xE60A1528),
         indicatorColor: AppColors.primarySoft,
         elevation: 0,
         height: 72,
@@ -412,7 +412,7 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Color(0xE60A1528),
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textMuted,
         elevation: 0,

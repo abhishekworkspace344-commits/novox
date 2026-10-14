@@ -89,8 +89,8 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
               title: Text(
                 geofence == null ? "Create Campus Geofence" : "Configure Geofence",
               ),
-              content: SizedBox(
-                width: 450,
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -490,7 +490,7 @@ class _AdminGeofenceScreenState extends State<AdminGeofenceScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.cardBorder),
             boxShadow: const [

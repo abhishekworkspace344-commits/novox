@@ -10,6 +10,7 @@ import '../../models/admin_dashboard_model.dart';
 import '../../services/admin_service.dart';
 import '../../services/admin_websocket_service.dart';
 import '../../widgets/dashboard_card.dart';
+import '../../widgets/responsive_grid.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/status_badge.dart';
 
@@ -268,10 +269,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildAdminHeader() {
     return Container(
       width: double.infinity,
+      clipBehavior: Clip.antiAlias,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: AppColors.heroGradient,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.25),
@@ -280,50 +283,88 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
-      child: Row(
+      child: Stack(
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.3),
-                width: 1,
+          Positioned(
+            right: -54,
+            top: -92,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  width: 32,
+                ),
               ),
             ),
-            child: const Icon(
-              Icons.admin_panel_settings_rounded,
-              color: Colors.white,
-              size: 32,
-            ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "NOVOX Administrator",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
+          Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.28),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  "Campus Operations & Analytics",
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: Colors.white,
+                  size: 31,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.13),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: const Text(
+                        'ADMINISTRATOR PORTAL',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.15,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    const Text(
+                      "NOVOX Administrator",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Campus Operations & Analytics",
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -339,23 +380,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppColors.cardBorder,
           width: 1,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x060F172A),
-            blurRadius: 10,
-            offset: Offset(0, 3),
+            color: Color(0x08111D38),
+            blurRadius: 18,
+            offset: Offset(0, 6),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
@@ -400,10 +441,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: AppColors.textMuted,
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 17,
+                    color: AppColors.primary,
+                  ),
                 ),
               ],
             ),
@@ -417,7 +466,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: AppColors.cardBorder,
@@ -581,6 +630,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             const SizedBox(height: 14),
 
             // Metric Cards
+            ResponsiveGrid(
+              children: [
             DashboardCard(
               title: "Total Students",
               value: data.totalStudents.toString(),
@@ -591,19 +642,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
               onTap: openStudents,
             ),
 
-            const SizedBox(height: 10),
-
             DashboardCard(
               title: "Total Faculty & Staff",
               value: data.totalStaff.toString(),
               subtitle: "Active department members",
               icon: Icons.groups_rounded,
-              iconColor: const Color(0xFF0284C7),
-              iconBgColor: const Color(0xFFE0F2FE),
+              iconColor: AppColors.primaryLight,
+              iconBgColor: AppColors.primarySoft,
               onTap: openStaff,
             ),
-
-            const SizedBox(height: 10),
 
             DashboardCard(
               title: "Present Today",
@@ -615,8 +662,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
               onTap: openAttendance,
             ),
 
-            const SizedBox(height: 10),
-
             DashboardCard(
               title: "Late Arrivals",
               value: data.lateToday.toString(),
@@ -627,8 +672,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
               onTap: openAttendance,
             ),
 
-            const SizedBox(height: 10),
-
             DashboardCard(
               title: "Total Pending Fees",
               value: "₹ ${data.totalPendingAmount.toStringAsFixed(2)}",
@@ -637,6 +680,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
               iconColor: AppColors.danger,
               iconBgColor: AppColors.dangerBg,
               onTap: openFees,
+            ),
+              ],
             ),
 
             const SizedBox(height: 24),
@@ -654,6 +699,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
             const SizedBox(height: 14),
 
+            ResponsiveGrid(
+              minItemWidth: 320,
+              children: [
             _buildManagementTile(
               title: "Students Management",
               subtitle: "Enrollment, course assignments & directories",
@@ -662,17 +710,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
               onTap: openStudents,
             ),
 
-            const SizedBox(height: 10),
-
             _buildManagementTile(
               title: "Staff & Faculty",
               subtitle: "Designations, departments & salary setups",
               icon: Icons.badge_outlined,
-              iconColor: const Color(0xFF0284C7),
+              iconColor: AppColors.primaryLight,
               onTap: openStaff,
             ),
-
-            const SizedBox(height: 10),
 
             _buildManagementTile(
               title: "Fee Management",
@@ -682,8 +726,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
               onTap: openFees,
             ),
 
-            const SizedBox(height: 10),
-
             _buildManagementTile(
               title: "Campus Geofence Settings",
               subtitle: "GPS perimeter coordinates & radius controls",
@@ -692,14 +734,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
               onTap: openGeofence,
             ),
 
-            const SizedBox(height: 10),
-
             _buildManagementTile(
               title: "Reports & Analytics",
               subtitle: "Attendance, late entries, salary & fee summaries",
               icon: Icons.analytics_outlined,
               iconColor: const Color(0xFFEA580C),
               onTap: openReports,
+            ),
+              ],
             ),
 
             const SizedBox(height: 26),
@@ -730,7 +772,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: AppColors.cardBorder,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../../models/admin_fee_model.dart';
 import '../../models/student_admin_model.dart';
@@ -261,8 +262,8 @@ class _AdminFeesScreenState
             return AlertDialog(
               title: Text(editing ? "Edit Fee Structure" : "Create Fee Structure"),
 
-              content: SizedBox(
-                width: 450,
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize:
@@ -571,8 +572,8 @@ class _AdminFeesScreenState
                 "Record Fee Payment",
               ),
 
-              content: SizedBox(
-                width: 450,
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize:
@@ -949,7 +950,7 @@ class _AdminFeesScreenState
                     style:
                         const TextStyle(
                       color:
-                          Colors.grey,
+                          AppColors.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -967,7 +968,7 @@ class _AdminFeesScreenState
                         style:
                             const TextStyle(
                           color:
-                              Colors.grey,
+                              AppColors.textMuted,
                           fontSize:
                               11,
                         ),
@@ -1104,7 +1105,7 @@ class _AdminFeesScreenState
                         style:
                             const TextStyle(
                           color:
-                              Colors.grey,
+                              AppColors.textMuted,
                           fontSize: 11,
                         ),
                       ),
@@ -1264,7 +1265,7 @@ class _AdminFeesScreenState
           title,
           style:
               const TextStyle(
-            color: Colors.grey,
+            color: AppColors.textMuted,
             fontSize: 11,
           ),
         ),
@@ -1322,7 +1323,7 @@ class _AdminFeesScreenState
               style:
                   TextStyle(
                 color:
-                    Colors.grey,
+                    AppColors.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -1376,14 +1377,14 @@ class _AdminFeesScreenState
         ),
         decoration:
             BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius:
               BorderRadius.circular(
             16,
           ),
           border: Border.all(
             color:
-                Colors.grey.shade200,
+                AppColors.surfaceVariant,
           ),
           boxShadow: const [
             BoxShadow(
@@ -1429,7 +1430,7 @@ class _AdminFeesScreenState
               style:
                   const TextStyle(
                 color:
-                    Colors.grey,
+                    AppColors.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -1471,14 +1472,14 @@ class _AdminFeesScreenState
         ),
         decoration:
             BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius:
               BorderRadius.circular(
             14,
           ),
           border: Border.all(
             color:
-                Colors.grey.shade200,
+                AppColors.surfaceVariant,
           ),
         ),
         child: Column(
@@ -1509,7 +1510,7 @@ class _AdminFeesScreenState
               style:
                   const TextStyle(
                 color:
-                    Colors.grey,
+                    AppColors.textMuted,
                 fontSize: 11,
               ),
             ),
@@ -1631,7 +1632,7 @@ class _AdminFeesScreenState
               style:
                   const TextStyle(
                 color:
-                    Colors.grey,
+                    AppColors.textMuted,
                 fontSize: 12,
               ),
             ),
@@ -2040,14 +2041,14 @@ class _AdminFeesScreenState
       ),
       decoration:
           BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius:
             BorderRadius.circular(
           16,
         ),
         border: Border.all(
           color:
-              Colors.grey.shade200,
+              AppColors.surfaceVariant,
         ),
       ),
       child: Column(
@@ -2056,7 +2057,7 @@ class _AdminFeesScreenState
             icon,
             size: 46,
             color:
-                Colors.grey,
+                AppColors.textMuted,
           ),
 
           const SizedBox(
@@ -2070,7 +2071,7 @@ class _AdminFeesScreenState
             style:
                 const TextStyle(
               color:
-                  Colors.grey,
+                  AppColors.textMuted,
             ),
           ),
         ],

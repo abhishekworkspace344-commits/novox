@@ -114,8 +114,8 @@ class _AdminStaffScreenState extends State<AdminStaffScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               title: Text(isEditing ? "Edit Faculty / Staff" : "Add Faculty / Staff"),
-              content: SizedBox(
-                width: 460,
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -383,7 +383,7 @@ class _AdminStaffScreenState extends State<AdminStaffScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
         boxShadow: const [

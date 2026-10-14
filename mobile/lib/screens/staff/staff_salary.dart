@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../../models/salary_model.dart';
 import '../../services/salary_service.dart';
@@ -391,7 +392,7 @@ class _StaffSalaryScreenState
           Icons
               .account_balance_wallet_outlined,
           size: 70,
-          color: Colors.grey.shade400,
+          color: AppColors.textMuted,
         ),
 
         const SizedBox(height: 16),
@@ -421,7 +422,7 @@ class _StaffSalaryScreenState
                   TextAlign.center,
               style: TextStyle(
                 color:
-                    Colors.grey.shade600,
+                    AppColors.textMuted,
               ),
             ),
           ),

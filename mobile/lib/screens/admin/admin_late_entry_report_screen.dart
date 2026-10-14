@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../../services/report_service.dart';
 
@@ -392,7 +393,7 @@ class _AdminLateEntryReportScreenState
             icon,
             size: 20,
             color:
-                Colors.grey.shade700,
+                AppColors.textMuted,
           ),
 
           const SizedBox(

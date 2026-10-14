@@ -13,6 +13,7 @@ import '../../services/attendance_service.dart';
 import '../../services/staff_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/section_heading.dart';
+import '../../widgets/responsive_grid.dart';
 
 import 'staff_attendance.dart';
 import 'staff_profile.dart';
@@ -383,7 +384,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
       margin: const EdgeInsets.only(top: 18),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.cardBorder, width: 1),
         boxShadow: const [
@@ -441,7 +442,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 "Checkout",
                 todayAttendance?.checkout ?? "-",
                 Icons.logout_rounded,
-                const Color(0xFF0284C7),
+                AppColors.primaryLight,
               ),
             ],
           ),
@@ -624,7 +625,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder, width: 1),
         boxShadow: const [
@@ -728,6 +729,9 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     subtitle: "Your work tools and records",
                   ),
                   const SizedBox(height: 12),
+                  ResponsiveGrid(
+                    minItemWidth: 320,
+                    children: [
                   buildMenuCard(
                     title: "My Profile",
                     subtitle: "View personal, institutional & contact details",
@@ -739,7 +743,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     title: "Attendance History",
                     subtitle: "Review monthly timeline, check-in & breaks",
                     icon: Icons.calendar_month_outlined,
-                    iconColor: const Color(0xFF0284C7),
+                    iconColor: AppColors.primaryLight,
                     onTap: openAttendance,
                   ),
                   buildMenuCard(
@@ -748,6 +752,8 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     icon: Icons.account_balance_wallet_outlined,
                     iconColor: const Color(0xFF0D9488),
                     onTap: openSalary,
+                  ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                 ],

@@ -12,6 +12,7 @@ import '../../services/attendance_service.dart';
 import '../../services/fee_service.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/section_heading.dart';
+import '../../widgets/responsive_grid.dart';
 
 import 'student_attendance.dart';
 import 'student_fees.dart';
@@ -410,7 +411,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       margin: const EdgeInsets.only(top: 18),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: AppColors.cardBorder,
@@ -487,7 +488,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 "Check-in",
                 todayAttendance?.checkIn ?? "-",
                 Icons.login_rounded,
-                const Color(0xFF0284C7),
+                AppColors.primaryLight,
               ),
               buildInfo(
                 "Checkout",
@@ -684,7 +685,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.cardBorder,
@@ -816,6 +817,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     subtitle: "Your attendance and fee records",
                   ),
                   const SizedBox(height: 12),
+                  ResponsiveGrid(
+                    minItemWidth: 320,
+                    children: [
                   buildMenuCard(
                     title: "Attendance History",
                     subtitle: "Daily logs, check-in timestamps & work hours",
@@ -831,6 +835,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     },
                   ),
                   buildFeesCard(),
+                    ],
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_error.dart';
 import '../../models/attendance_model.dart';
@@ -326,7 +327,7 @@ class _StaffAttendanceScreenState
         Icon(
           Icons.event_available_outlined,
           size: 60,
-          color: Colors.grey.shade500,
+          color: AppColors.textMuted,
         ),
 
         const SizedBox(height: 12),

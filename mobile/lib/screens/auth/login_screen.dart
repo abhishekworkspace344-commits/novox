@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../core/constants/api_constants.dart';
@@ -319,13 +321,13 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primarySoft
-              : Colors.white,
+              ? const Color(0x553B82F6)
+              : const Color(0x14FFFFFF),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected
-                ? AppColors.primary
-                : AppColors.cardBorder,
+                ? const Color(0xAA69C5FF)
+                : const Color(0x33FFFFFF),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -335,8 +337,8 @@ class _LoginScreenState extends State<LoginScreen> {
               icon,
               size: 18,
               color: isSelected
-                  ? AppColors.primary
-                  : AppColors.textSecondary,
+                  ? const Color(0xFFB8E5FF)
+                  : const Color(0xFFB7C9E6),
             ),
             const SizedBox(
               height: 4,
@@ -349,11 +351,55 @@ class _LoginScreenState extends State<LoginScreen> {
                     ? FontWeight.w700
                     : FontWeight.w600,
                 color: isSelected
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                    ? const Color(0xFFB8E5FF)
+                    : const Color(0xFFB7C9E6),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _glassInputDecoration({
+    required String label,
+    required String hint,
+    required IconData icon,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      filled: true,
+      fillColor: const Color(0x1EFFFFFF),
+      labelStyle: const TextStyle(color: Color(0xFFB7C9E6)),
+      hintStyle: const TextStyle(color: Color(0x889CB1D2)),
+      prefixIcon: Icon(icon, color: const Color(0xFF72C9FF), size: 20),
+      suffixIcon: suffix,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0x44C9E6FF)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFF58BDF8), width: 1.6),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0x228CA7D9)),
+      ),
+    );
+  }
+
+  Widget _backgroundOrb(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, color.withValues(alpha: 0.24), Colors.transparent],
+          stops: const [0, 0.58, 1],
         ),
       ),
     );
@@ -366,16 +412,56 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF020B1D),
+      backgroundColor: const Color(0xFF050B18),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            'assets/images/novox_background.png',
-            fit: BoxFit.cover,
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF09172D),
+                  Color(0xFF07101F),
+                  Color(0xFF020711),
+                ],
+              ),
+            ),
           ),
-          // Keep the form legible while leaving the supplied artwork visible.
-          Container(color: const Color(0x33020B1D)),
+          // Soft blue glass orbs replace the old full-screen artwork.
+          Positioned(
+            top: -145,
+            left: -110,
+            child: _backgroundOrb(420, const Color(0xAA1769DC)),
+          ),
+          Positioned(
+            top: 70,
+            right: -150,
+            child: _backgroundOrb(450, const Color(0x8833B8F2)),
+          ),
+          Positioned(
+            bottom: -220,
+            left: MediaQuery.sizeOf(context).width * 0.12,
+            child: _backgroundOrb(560, const Color(0x773B5BFF)),
+          ),
+          Positioned(
+            top: -100,
+            right: MediaQuery.sizeOf(context).width * 0.28,
+            child: Transform.rotate(
+              angle: -0.48,
+              child: Container(
+                width: 150,
+                height: 520,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(100),
+                  gradient: const LinearGradient(
+                    colors: [Color(0x001B78E8), Color(0x4437B7FF), Color(0x001B78E8)],
+                  ),
+                ),
+              ),
+            ),
+          ),
           SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -447,7 +533,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFFDCE5FA),
+                      color: const Color(0xFFB9C8E0),
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -460,27 +546,48 @@ class _LoginScreenState extends State<LoginScreen> {
                   // LOGIN CARD
                   // =================================================
 
-                  Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: const Color(0xF7FFFFFF),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 1,
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x28101D42),
-                          blurRadius: 34,
-                          offset: Offset(
-                            0,
-                            8,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                      child: Container(
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xCC142746),
+                              Color(0xB3091A32),
+                              Color(0xCC0A1427),
+                            ],
+                            stops: [0, 0.42, 1],
                           ),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: const Color(0x668FCEFF),
+                            width: 1.3,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0xAA020610),
+                              blurRadius: 52,
+                              offset: Offset(0, 20),
+                            ),
+                            BoxShadow(
+                              color: Color(0x443AAFFF),
+                              blurRadius: 42,
+                              spreadRadius: -10,
+                            ),
+                            BoxShadow(
+                              color: Color(0x338FD7FF),
+                              blurRadius: 1,
+                              spreadRadius: 0,
+                              offset: Offset(0, -1),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
+                        child: Column(
                       crossAxisAlignment:
                           CrossAxisAlignment.start,
                       children: [
@@ -488,12 +595,47 @@ class _LoginScreenState extends State<LoginScreen> {
                         // WELCOME
                         // =================================================
 
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0x223D91E8),
+                            border: Border.all(color: const Color(0x447DC9FF)),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.verified_user_outlined,
+                                color: const Color(0xFF80D6FF),
+                                size: 15,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'SECURE INSTITUTION PORTAL',
+                                style: TextStyle(
+                                  color: const Color(0xFFB9E8FF),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.65,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
                         const Text(
                           "Welcome Back",
                           style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: -0.55,
                           ),
                         ),
 
@@ -505,7 +647,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           "Sign in to your institutional account",
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.textSecondary,
+                            color: const Color(0xFFB7C9E6),
                           ),
                         ),
 
@@ -519,22 +661,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         TextField(
                           controller: emailController,
+                          style: const TextStyle(color: Colors.white),
                           keyboardType:
                               TextInputType.emailAddress,
                           textInputAction:
                               TextInputAction.next,
                           enabled: !loading,
-                          decoration:
-                              const InputDecoration(
-                            labelText: "Email",
-                            hintText:
-                                "user@novox.com",
-                            prefixIcon: Icon(
-                              Icons.email_outlined,
-                              color:
-                                  AppColors.primary,
-                              size: 20,
-                            ),
+                          decoration: _glassInputDecoration(
+                            label: "Email",
+                            hint: "user@novox.com",
+                            icon: Icons.email_outlined,
                           ),
                         ),
 
@@ -549,6 +685,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextField(
                           controller:
                               passwordController,
+                          style: const TextStyle(color: Colors.white),
                           obscureText:
                               obscurePassword,
                           enabled: !loading,
@@ -559,28 +696,18 @@ class _LoginScreenState extends State<LoginScreen> {
                               login();
                             }
                           },
-                          decoration:
-                              InputDecoration(
-                            labelText: "Password",
-                            hintText: "••••••••",
-                            prefixIcon:
-                                const Icon(
-                              Icons
-                                  .lock_outline_rounded,
-                              color:
-                                  AppColors.primary,
-                              size: 20,
-                            ),
-                            suffixIcon:
-                                IconButton(
+                          decoration: _glassInputDecoration(
+                            label: "Password",
+                            hint: "••••••••",
+                            icon: Icons.lock_outline_rounded,
+                            suffix: IconButton(
                               icon: Icon(
                                 obscurePassword
                                     ? Icons
                                         .visibility_outlined
                                     : Icons
                                         .visibility_off_outlined,
-                                color:
-                                    AppColors.textMuted,
+                                color: const Color(0xFFB7C9E6),
                                 size: 20,
                               ),
                               onPressed: loading
@@ -699,7 +826,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Row(
                           children: const [
                             Expanded(
-                              child: Divider(),
+                              child: Divider(color: Color(0x338CA3CB)),
                             ),
                             Padding(
                               padding:
@@ -712,14 +839,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                   fontSize: 11,
                                   fontWeight:
                                       FontWeight.w700,
-                                  color:
-                                      AppColors.textMuted,
+                                  color: Color(0xFF9DB1D0),
                                   letterSpacing: 0.8,
                                 ),
                               ),
                             ),
                             Expanded(
-                              child: Divider(),
+                              child: Divider(color: Color(0x338CA3CB)),
                             ),
                           ],
                         ),
@@ -783,6 +909,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                       ],
+                        ),
+                      ),
                     ),
                   ),
 
@@ -802,7 +930,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Icon(
                         Icons.shield_outlined,
                         size: 14,
-                        color: AppColors.textMuted,
+                        color: Color(0xFF9DB1D0),
                       ),
                       SizedBox(
                         width: 6,
@@ -815,7 +943,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             color:
-                                AppColors.textMuted,
+                                Color(0xFF9DB1D0),
                             fontWeight:
                                 FontWeight.w500,
                           ),

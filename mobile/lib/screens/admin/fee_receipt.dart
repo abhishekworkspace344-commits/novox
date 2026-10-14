@@ -1,11 +1,8 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_error.dart';
+import '../../core/storage/download_bytes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../services/fee_service.dart';
 import '../../widgets/status_badge.dart';
@@ -41,12 +38,12 @@ class _FeeReceiptScreenState extends State<FeeReceiptScreen> {
     try {
       final feeService = FeeService(ApiClient());
       final bytes = await feeService.downloadMyReceipt(widget.receiptNumber);
-
-      if (!kIsWeb && bytes.isNotEmpty) {
-        final dir = await getApplicationDocumentsDirectory();
-        final file = File("${dir.path}/${widget.receiptNumber}.pdf");
-        await file.writeAsBytes(bytes);
-      }
+      if (bytes.isEmpty) throw Exception('The receipt file was empty.');
+      await downloadBytes(
+        bytes,
+        filename: '${widget.receiptNumber}.pdf',
+        contentType: 'application/pdf',
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -90,7 +87,7 @@ class _FeeReceiptScreenState extends State<FeeReceiptScreen> {
             constraints: const BoxConstraints(maxWidth: 500),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: AppColors.cardBorder,

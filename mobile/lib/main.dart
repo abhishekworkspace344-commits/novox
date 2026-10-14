@@ -23,16 +23,40 @@ class NovoxApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "NOVOX",
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
       builder: (context, child) => Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            'assets/images/novox_page_background.png',
-            fit: BoxFit.cover,
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0A1830),
+                  Color(0xFF050B18),
+                  Color(0xFF071329),
+                ],
+              ),
+            ),
           ),
-          const ColoredBox(color: Color(0xDDF4F6FB)),
-          ?child,
+          Positioned(
+            top: -190,
+            right: -150,
+            child: _ambientGlow(460, const Color(0x553B82F6)),
+          ),
+          Positioned(
+            bottom: -250,
+            left: -150,
+            child: _ambientGlow(560, const Color(0x4424B8E6)),
+          ),
+          if (child != null)
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1280),
+                child: child,
+              ),
+            ),
         ],
       ),
       initialRoute: "/login",
@@ -42,6 +66,20 @@ class NovoxApp extends StatelessWidget {
         "/staff": (_) => const StaffDashboard(),
         "/admin": (_) => const AdminDashboard(),
       },
+    );
+  }
+
+  Widget _ambientGlow(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, color.withValues(alpha: 0.2), Colors.transparent],
+          stops: const [0, 0.58, 1],
+        ),
+      ),
     );
   }
 }

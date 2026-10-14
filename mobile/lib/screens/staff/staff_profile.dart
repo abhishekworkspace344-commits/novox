@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/network/api_client.dart';
 import '../../models/staff_model.dart';
 import '../../services/staff_service.dart';
@@ -205,8 +206,8 @@ class _StaffProfileScreenState
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF111827),
-            Color(0xFF1F2937),
+            Color(0xFF0A1A33),
+            Color(0xFF153B69),
           ],
         ),
       ),
@@ -214,13 +215,13 @@ class _StaffProfileScreenState
         children: [
           CircleAvatar(
             radius: 42,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.primarySoft,
             child: Text(
               initial,
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF111827),
+                color: AppColors.primaryLight,
               ),
             ),
           ),
@@ -279,7 +280,7 @@ class _StaffProfileScreenState
           title,
           style: const TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: AppColors.textMuted,
           ),
         ),
         subtitle: Padding(
